@@ -8,7 +8,7 @@
 ```toml
 [mcp_servers.auto]
 command = "npx"
-args = ["-y", "@autodotfun/mcp"]
+args = ["-y", "auto-mcp"]
 
 [mcp_servers.auto.env]
 AUTO_API_KEY = "atk_..."

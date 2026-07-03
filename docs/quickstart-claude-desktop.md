@@ -9,7 +9,7 @@
   "mcpServers": {
     "auto": {
       "command": "npx",
-      "args": ["-y", "@autodotfun/mcp"],
+      "args": ["-y", "auto-mcp"],
       "env": {
         "AUTO_API_KEY": "atk_...",
         "AUTO_MCP_SURFACE": "research"

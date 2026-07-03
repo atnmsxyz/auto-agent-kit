@@ -3,7 +3,7 @@
 Thin stdio proxy for the Auto MCP Gateway.
 
 ```bash
-AUTO_API_KEY=atk_... AUTO_MCP_SURFACE=research npx -y @autodotfun/mcp
+AUTO_API_KEY=atk_... AUTO_MCP_SURFACE=research npx -y auto-mcp
 ```
 
 Environment:
@@ -13,4 +13,4 @@ Environment:
 - `AUTO_MCP_SURFACE` is `research`, `perps`, or `trading`.
 - `AUTO_MCP_CATEGORIES` is a power-user override for category bundles.
 
-TODO: verify npm org/package availability for `@autodotfun/mcp` before publish.
+TODO: verify npm org/package availability for `auto-mcp` before publish.

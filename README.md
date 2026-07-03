@@ -22,7 +22,7 @@ Noob path:
 Manual MCP command:
 
 ```bash
-AUTO_API_KEY=atk_... AUTO_MCP_SURFACE=research npx -y @autodotfun/mcp
+AUTO_API_KEY=atk_... AUTO_MCP_SURFACE=research npx -y auto-mcp
 ```
 
 `AUTO_MCP_CATEGORIES` is a power-user override. Use `AUTO_MCP_SURFACE` first.
