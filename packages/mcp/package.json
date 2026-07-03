@@ -1,0 +1,28 @@
+{
+  "name": "@autodotfun/mcp",
+  "version": "0.1.0",
+  "description": "Auto MCP stdio proxy for external agents.",
+  "autoTodo": "TODO: verify npm org/package availability for @autodotfun/mcp before publish.",
+  "type": "module",
+  "bin": {
+    "auto-mcp": "./dist/index.js"
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "test": "node --test test/*.test.mjs"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.29.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.19.0",
+    "typescript": "^5.8.3"
+  }
+}

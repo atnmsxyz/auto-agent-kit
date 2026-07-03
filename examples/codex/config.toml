@@ -1,0 +1,7 @@
+[mcp_servers.auto]
+command = "npx"
+args = ["-y", "@autodotfun/mcp"]
+
+[mcp_servers.auto.env]
+AUTO_API_KEY = "atk_REPLACE_ME"
+AUTO_MCP_SURFACE = "research"

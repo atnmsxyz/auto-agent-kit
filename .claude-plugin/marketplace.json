@@ -1,0 +1,21 @@
+{
+  "name": "Auto Agent Kit",
+  "description": "Claude Code plugins and skills for using Auto through the public MCP Gateway.",
+  "plugins": [
+    {
+      "name": "auto-research",
+      "path": "plugins/auto-research",
+      "description": "Read-only Auto research tools for market data, macro, social, and prediction-market discovery."
+    },
+    {
+      "name": "auto-perps",
+      "path": "plugins/auto-perps",
+      "description": "Auto research plus Hyperliquid perps trading guardrails."
+    },
+    {
+      "name": "auto-trading",
+      "path": "plugins/auto-trading",
+      "description": "Full Auto trading surface with risk, perps, prediction markets, and Agent Brain skills."
+    }
+  ]
+}
