@@ -2,7 +2,6 @@
   "name": "auto-mcp",
   "version": "0.1.0",
   "description": "Auto MCP stdio proxy for external agents.",
-  "autoTodo": "TODO: verify npm org/package availability for auto-mcp before publish.",
   "type": "module",
   "bin": {
     "auto-mcp": "./dist/index.js"
