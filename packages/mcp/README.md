@@ -3,7 +3,7 @@
 Thin stdio proxy for the Auto MCP Gateway.
 
 ```bash
-AUTO_API_KEY=atk_... AUTO_MCP_SURFACE=research npx -y auto-mcp
+AUTO_API_KEY=atk_... AUTO_MCP_SURFACE=research npx -y @atnms/auto-mcp
 ```
 
 Environment:

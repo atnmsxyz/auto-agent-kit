@@ -12,7 +12,7 @@ Use this card when someone wants Auto tools inside an external agent. Keep the s
 Configure the MCP client to run:
 
 ```bash
-AUTO_API_KEY=atk_... AUTO_MCP_SURFACE=research npx -y auto-mcp
+AUTO_API_KEY=atk_... AUTO_MCP_SURFACE=research npx -y @atnms/auto-mcp
 ```
 
 `AUTO_API_URL` defaults to `https://trading.auto.fun`. Set it only for staging or local testing.

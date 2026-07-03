@@ -1,5 +1,5 @@
 {
-  "name": "auto-mcp",
+  "name": "@atnms/auto-mcp",
   "version": "0.1.0",
   "description": "Auto MCP stdio proxy for external agents.",
   "type": "module",
