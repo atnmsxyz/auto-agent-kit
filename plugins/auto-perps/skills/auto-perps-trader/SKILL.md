@@ -14,6 +14,7 @@ Run `auto-risk-manager`, then read: balance, current positions, open orders, exi
 ## Sizing
 
 - Minimum order notional is $10. Compute `base size * mark price >= 10`.
+- Limit orders far below/above mark: size is derived from mark, so notional at the LIMIT price can fall under $10 and reject. Increase size until `base size * limit price >= 10`.
 - If margin cannot support a $10 notional at requested leverage, stop and ask the user to fund or resize.
 - `sizeType=notional`: `size` is total position value.
 - `sizeType=base`: `size` is asset quantity.
