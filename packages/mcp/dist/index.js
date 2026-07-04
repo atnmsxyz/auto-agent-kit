@@ -2,7 +2,7 @@
 import { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { CallToolRequestSchema, ListToolsRequestSchema, } from "@modelcontextprotocol/sdk/types.js";
-const API_URL = (process.env.AUTO_API_URL ?? "https://trading.auto.fun").replace(/\/+$/, "");
+const API_URL = (process.env.AUTO_API_URL ?? "https://develop.auto.fun").replace(/\/+$/, "");
 const API_KEY = process.env.AUTO_API_KEY;
 const GATEWAY_PATH = (process.env.AUTO_MCP_GATEWAY_PATH ??
     (process.env.AUTO_MCP_DEV_GATEWAY === "true" ? "/api/dev/mcp" : "/api/mcp")).replace(/\/+$/, "");
@@ -55,7 +55,7 @@ async function fetchTools() {
     const json = (await res.json());
     return json.data?.tools ?? [];
 }
-const server = new Server({ name: "auto-mcp", version: "0.1.0" }, { capabilities: { tools: {} } });
+const server = new Server({ name: "auto-mcp", version: "0.1.1" }, { capabilities: { tools: {} } });
 server.setRequestHandler(ListToolsRequestSchema, async () => {
     const tools = await fetchTools();
     return {

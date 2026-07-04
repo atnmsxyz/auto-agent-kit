@@ -15,7 +15,7 @@ Configure the MCP client to run:
 AUTO_API_KEY=atk_... AUTO_MCP_SURFACE=research npx -y @atnms/auto-mcp
 ```
 
-`AUTO_API_URL` defaults to `https://trading.auto.fun`. Set it only for staging or local testing.
+`AUTO_API_URL` defaults to `https://develop.auto.fun`. Set it only for staging or local testing.
 
 ## Surface Picker
 

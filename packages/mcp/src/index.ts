@@ -7,7 +7,7 @@ import {
 } from "@modelcontextprotocol/sdk/types.js";
 
 const API_URL = (
-	process.env.AUTO_API_URL ?? "https://trading.auto.fun"
+	process.env.AUTO_API_URL ?? "https://develop.auto.fun"
 ).replace(/\/+$/, "");
 const API_KEY = process.env.AUTO_API_KEY;
 const GATEWAY_PATH = (
@@ -85,7 +85,7 @@ async function fetchTools(): Promise<ToolDescriptor[]> {
 }
 
 const server = new Server(
-	{ name: "auto-mcp", version: "0.1.0" },
+	{ name: "auto-mcp", version: "0.1.1" },
 	{ capabilities: { tools: {} } },
 );
 
