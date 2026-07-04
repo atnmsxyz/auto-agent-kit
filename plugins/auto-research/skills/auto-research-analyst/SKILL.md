@@ -1,6 +1,6 @@
 ---
 name: auto-research-analyst
-description: Use when answering market, macro, social, or prediction-market research questions through Auto MCP.
+description: Use when answering market, macro, or prediction-market research questions through Auto MCP.
 ---
 
 # Auto Research Analyst
@@ -15,7 +15,6 @@ Use Auto as a research terminal. Prefer tool results over memory, show freshness
 | Hyperliquid trader/wallet intelligence | `hyperintel` |
 | CPI, rates, labor, FRED series, release dates | `macro` |
 | token discovery, metadata, broad market search | `market-data` |
-| X/social narrative checks | `social` |
 | Polymarket discovery/trading context; Kalshi open-interest timeseries/tree reads only | `prediction-markets` |
 
 ## Freshness Discipline

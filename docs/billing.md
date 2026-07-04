@@ -13,7 +13,6 @@ Trading tools are wallet-native and are not x402-billed.
 | nansen | 0.010 |
 | macro / FRED | 0.002 |
 | market-data discovery/search | 0.002 |
-| social / ct-alpha | 0.005 |
 | tool listing, own wallet/positions/orders, orderbook and safety reads | free |
 
 Default spend cap: $10 per key per day.
@@ -47,9 +46,12 @@ Current gateway category strings:
 | `coinglass` |
 | `hyperintel` |
 | `nansen` |
-| `social` |
 | `web-news` |
 | `technicals` |
 | `coingecko` |
 | `defillama` |
 | `codex-data` |
+
+Social/X research tools are not available through this gateway and are not a
+valid category. Pair a dedicated X/social MCP with Auto MCP if you need
+timeline or narrative data.

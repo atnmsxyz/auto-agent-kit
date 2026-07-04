@@ -23,7 +23,7 @@ Noob path:
 
 | Surface | Best for | Key |
 |---|---|---|
-| `research` | market data, macro, social, Polymarket discovery | Read |
+| `research` | market data, macro, Polymarket discovery | Read |
 | `perps` | Hyperliquid perps with research and risk checks | Read + Write |
 | `trading` | full trading agent: perps, Polymarket, wallet execution* | Read + Write |
 
@@ -44,7 +44,7 @@ Paid data tools can charge small USDC amounts from your Auto wallet on Base. Tra
 ## Skills
 
 - `connect-auto-mcp`: setup, surface choice, validation, troubleshooting.
-- `auto-research-analyst`: market, macro, social, and prediction-market research.
+- `auto-research-analyst`: market, macro, and prediction-market research.
 - `auto-perps-trader`: Hyperliquid perps execution rules.
 - `auto-prediction-markets`: discovery-to-token-id-to-trade flow.
 - `auto-risk-manager`: pre-write checklist for every trade.
