@@ -2,7 +2,7 @@
 import { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { CallToolRequestSchema, ListToolsRequestSchema, } from "@modelcontextprotocol/sdk/types.js";
-const API_URL = (process.env.AUTO_API_URL ?? "https://develop.auto.fun").replace(/\/+$/, "");
+const API_URL = (process.env.AUTO_API_URL ?? "https://auto.fun").replace(/\/+$/, "");
 const API_KEY = process.env.AUTO_API_KEY;
 const GATEWAY_PATH = (process.env.AUTO_MCP_GATEWAY_PATH ??
     (process.env.AUTO_MCP_DEV_GATEWAY === "true" ? "/api/dev/mcp" : "/api/mcp")).replace(/\/+$/, "");

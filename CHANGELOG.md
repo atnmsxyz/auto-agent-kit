@@ -2,6 +2,12 @@
 
 Semver: patch for docs and metadata, minor for new compatible behavior, major for breaking changes.
 
+## 0.2.0
+
+- Default host is now `https://auto.fun` (production). Override with `AUTO_API_URL`.
+- Public MCP gateway is live on production: research/perps/trading surfaces,
+  per-call x402 USDC billing on Base, scoped Read / Read+Write API keys.
+
 ## Unreleased
 
 ## 0.1.1

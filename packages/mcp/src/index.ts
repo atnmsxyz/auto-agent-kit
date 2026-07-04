@@ -7,7 +7,7 @@ import {
 } from "@modelcontextprotocol/sdk/types.js";
 
 const API_URL = (
-	process.env.AUTO_API_URL ?? "https://develop.auto.fun"
+	process.env.AUTO_API_URL ?? "https://auto.fun"
 ).replace(/\/+$/, "");
 const API_KEY = process.env.AUTO_API_KEY;
 const GATEWAY_PATH = (
