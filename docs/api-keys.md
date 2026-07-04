@@ -17,4 +17,10 @@ Consent copy:
 
 Old preset IDs may appear in historical records as aliases: `research_only` and `trading_read_only` map to Read; `perps_trader_beta` and `full_trading_beta` map to Read + Write. New UI and docs should show only Read or Read + Write.
 
-Revoke a key from the Auto UI when an agent no longer needs access. Revoked keys return 401.
+Revoke a key from the profile menu -> Account modal -> Account tab -> API Keys section when an agent no longer needs access. Revoked keys return 401 on the next call.
+
+## If a key leaks
+
+Revoke it. Revocation is immediate: the next call returns 401.
+
+A leaked key can only use its MCP scopes. Writes are only possible through the MCP gateway. A leaked API key cannot call wallet-mutating REST routes and cannot withdraw or transfer funds.

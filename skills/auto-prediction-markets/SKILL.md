@@ -21,6 +21,7 @@ Use this card for Polymarket-style discovery and trading. Trading tools cannot d
 - Valid price bounds are 0.001 to 0.999 unless the tool returns stricter limits.
 - YES/NO must match the chosen market outcome; do not infer from a headline alone.
 - `token_id` is not `condition_id`. Use the long token id returned by discovery.
+- `SEARCH_POLYMARKETS.limit` bounds events returned, not individual markets.
 - For limit orders, respect the user's price. For market orders, warn about thin liquidity.
 
 ## Sports and Outrights

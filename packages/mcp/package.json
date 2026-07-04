@@ -2,6 +2,12 @@
   "name": "@atnms/auto-mcp",
   "version": "0.1.0",
   "description": "Auto MCP stdio proxy for external agents.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/atnmsxyz/auto-agent-kit.git"
+  },
+  "homepage": "https://github.com/atnmsxyz/auto-agent-kit#readme",
   "type": "module",
   "bin": {
     "auto-mcp": "./dist/index.js"

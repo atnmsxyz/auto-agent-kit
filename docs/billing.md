@@ -9,7 +9,8 @@ Trading tools are wallet-native and are not x402-billed.
 | Category | USD per call |
 |---|---:|
 | coinglass | 0.005 |
-| hyperintel / nansen-backed | 0.010 |
+| hyperintel | 0.010 |
+| nansen | 0.010 |
 | macro / FRED | 0.002 |
 | market-data discovery/search | 0.002 |
 | social / ct-alpha | 0.005 |
@@ -20,8 +21,35 @@ Default spend cap: $10 per key per day.
 ## Receipts
 
 - `charged: true` means settlement succeeded.
+- `settlementId` on a charged x402 receipt is the Base transaction hash. Verify it at `https://basescan.org/tx/<settlementId>`.
 - `cacheHit: true` means the paid data cache answered; do not count it as a new charge.
+- Cache matches the same tool and params for the same user. The TTL is short.
 - `mode: local-free` means no charge happened.
 - 402-shaped receipts explain over-cap, insufficient USDC, or settlement failure.
 
-Fund your Auto wallet with USDC on Base before using paid reads in x402 mode.
+## Where does the money come from?
+
+Paid data uses USDC from the user's own Auto wallet on Base. Each charged call settles separately. There is no subscription and no shared off-chain ledger.
+
+Fund the Auto wallet with USDC on Base before using paid reads in x402 mode.
+
+## Category reference
+
+`AUTO_MCP_CATEGORIES` is a comma-separated override. The proxy forwards the string to the gateway.
+
+Current gateway category strings:
+
+| Category |
+|---|
+| `market-data` |
+| `macro` |
+| `prediction-markets` |
+| `coinglass` |
+| `hyperintel` |
+| `nansen` |
+| `social` |
+| `web-news` |
+| `technicals` |
+| `coingecko` |
+| `defillama` |
+| `codex-data` |

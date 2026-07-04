@@ -16,7 +16,7 @@ Use Auto as a research terminal. Prefer tool results over memory, show freshness
 | CPI, rates, labor, FRED series, release dates | `macro` |
 | token discovery, metadata, broad market search | `market-data` |
 | X/social narrative checks | `social` |
-| Polymarket/Kalshi discovery or sports markets | `prediction-markets` |
+| Polymarket discovery/trading context; Kalshi open-interest timeseries/tree reads only | `prediction-markets` |
 
 ## Freshness Discipline
 

@@ -11,13 +11,23 @@ Noob path:
 5. Ask the agent to list Auto tools.
 6. Trade only after the risk card has checked the setup.
 
+## Why this is different
+
+- Client config needs `AUTO_API_KEY`. No private key exists client-side.
+- Read + Write keys can trade through the MCP gateway, but cannot withdraw or transfer funds.
+- Paid data settles per call as USDC on Base from the user's own Auto wallet. Charged receipts include `settlementId`, the Base transaction hash.
+- Non-KYC venue coverage includes Hyperliquid and Polymarket.
+- One `npx` install exposes 230+ research tools or 277 trading tools.
+
 ## Surfaces
 
 | Surface | Best for | Key |
 |---|---|---|
-| `research` | market data, macro, social, prediction-market discovery | Read |
+| `research` | market data, macro, social, Polymarket discovery | Read |
 | `perps` | Hyperliquid perps with research and risk checks | Read + Write |
-| `trading` | full trading agent: perps, prediction markets, wallet execution | Read + Write |
+| `trading` | full trading agent: perps, Polymarket, wallet execution* | Read + Write |
+
+* Wallet execution includes swap, bridge, and Solana-transfer tools.
 
 Manual MCP command:
 

@@ -29,7 +29,7 @@ AUTO_API_KEY=atk_... AUTO_MCP_SURFACE=research npx -y @atnms/auto-mcp
 
 ## Key Flow
 
-1. Open Auto dashboard -> Account -> API keys.
+1. Open the profile menu -> Account modal -> Account tab -> API Keys section.
 2. Create **Read** for research-only agents or **Read + Write** for agents allowed to trade.
 3. Paste the one-time `atk_...` key into the MCP client config.
 4. Read the consent copy: paid data tools charge small USDC amounts from the Auto wallet; Read + Write can place trades, no withdrawals.

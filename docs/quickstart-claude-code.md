@@ -1,6 +1,6 @@
 # Claude Code Quickstart
 
-1. In Auto, open Account -> API keys.
+1. In Auto, open the profile menu -> Account modal -> Account tab -> API Keys section.
 2. Create **Read** for research or **Read + Write** for trading. The consent copy means paid data tools can charge small USDC amounts from your Auto wallet; Read + Write can place trades but cannot withdraw.
 3. Install the marketplace, then the plugin:
 

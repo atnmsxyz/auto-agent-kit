@@ -16,6 +16,9 @@ Run this before every write. Tool availability is not permission. The user's ins
 - Position side, size, leverage, liquidation distance, and margin mode when perps are involved.
 - User-stated constraints: max loss, stop, target, time horizon, no-trade zones.
 - Fees, slippage, funding, or settlement delay when material.
+- For swaps and bridges: slippage tolerance and quote-vs-execute staleness.
+- For bridges: recover flow existence before execution.
+- For transfers and bridges: wrong-chain and wrong-address recipient risk.
 
 ## Stop Conditions
 
