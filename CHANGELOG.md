@@ -2,6 +2,11 @@
 
 Semver: patch for docs and metadata, minor for new compatible behavior, major for breaking changes.
 
+## 0.2.1
+
+- Add package `types` + `exports` map and `prepublishOnly` build guard.
+- CI: auto-publish `@atnms/auto-mcp` to npm on push to `main` (version-guarded).
+
 ## 0.2.0
 
 - Default host is now `https://auto.fun` (production). Override with `AUTO_API_URL`.

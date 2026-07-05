@@ -1,6 +1,6 @@
 {
   "name": "@atnms/auto-mcp",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Auto MCP stdio proxy for external agents.",
   "license": "MIT",
   "repository": {
@@ -9,6 +9,13 @@
   },
   "homepage": "https://github.com/atnmsxyz/auto-agent-kit#readme",
   "type": "module",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
   "bin": {
     "auto-mcp": "./dist/index.js"
   },
@@ -18,7 +25,8 @@
   ],
   "scripts": {
     "build": "tsc -p tsconfig.json",
-    "test": "node --test test/*.test.mjs"
+    "test": "node --test test/*.test.mjs",
+    "prepublishOnly": "npm run build"
   },
   "engines": {
     "node": ">=20"

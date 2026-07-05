@@ -1,0 +1,48 @@
+name: Release @atnms/auto-mcp
+
+# Auto-publishes the MCP package when a change to it lands on main.
+# Idempotent: skips if the version in package.json is already on npm, so
+# non-version commits (docs, refactors) never trigger a duplicate publish.
+on:
+  push:
+    branches: [main]
+    paths:
+      - "packages/mcp/**"
+  workflow_dispatch: {}
+
+concurrency:
+  group: release-mcp
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    defaults:
+      run:
+        working-directory: packages/mcp
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          registry-url: "https://registry.npmjs.org"
+      - name: Install
+        run: npm ci || npm install
+      - name: Build
+        run: npm run build
+      - name: Test
+        run: npm test
+      - name: Publish if version is new
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          NAME=$(node -p "require('./package.json').name")
+          VERSION=$(node -p "require('./package.json').version")
+          if npm view "$NAME@$VERSION" version >/dev/null 2>&1; then
+            echo "$NAME@$VERSION already published — skipping."
+            exit 0
+          fi
+          echo "Publishing $NAME@$VERSION"
+          npm publish --access public
