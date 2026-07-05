@@ -4,6 +4,8 @@ Semver: patch for docs and metadata, minor for new compatible behavior, major fo
 
 ## Unreleased
 
+## 0.3.0
+
 - Add portable `rules/` — harness-neutral versions of the skill cards, generated
   from `skills/` by `scripts/build-rules.mjs`, with per-surface `AGENTS.<surface>.md`
   bundles for Codex, Cursor, Windsurf, Cline, and any rules-based harness.
