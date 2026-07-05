@@ -1,7 +1,4 @@
----
-name: connect-auto-mcp
-description: Use when setting up Auto MCP in Claude Code, Claude Desktop, Codex, Hermes, or another MCP client.
----
+<!-- Generated from skills/ by scripts/build-rules.mjs. Do not edit by hand. -->
 
 # Connect Auto MCP
 

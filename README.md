@@ -1,55 +1,86 @@
 # Auto Agent Kit
 
-Auto Agent Kit lets Claude, Codex, Hermes, and other MCP clients use Auto through a simple package and public skill cards.
+Auto Agent Kit lets **any** MCP-capable agent — Claude Code, Claude Desktop,
+Codex, Cursor, Windsurf, Cline, Gemini CLI, Hermes, or your own harness — use
+[Auto](https://auto.fun) through one `npx` package, plus portable operating
+rules and Claude plugins.
 
-Noob path:
+## Quick start (any harness)
 
-1. Add the Claude Code marketplace from this repo.
-2. Install `auto-research`, `auto-perps`, or `auto-trading`.
-3. Create an Auto API key in the UI.
-4. Paste the `atk_...` key.
-5. Ask the agent to list Auto tools.
-6. Trade only after the risk card has checked the setup.
+1. Create an Auto API key in the app (**Read** for research, **Read + Write** to trade).
+2. Point your MCP client at the package:
+
+   ```bash
+   AUTO_API_KEY=atk_... AUTO_MCP_SURFACE=research npx -y @atnms/auto-mcp
+   ```
+
+3. Restart the client and ask it to list Auto tools.
+4. (Optional) Load the matching rules bundle from [`rules/`](rules/README.md) so
+   the agent follows Auto's risk and execution discipline.
+5. Trade only after the risk rules have checked the setup.
+
+Config for each client lives in [`examples/`](examples/README.md) — the command
+is identical everywhere; only the config file changes.
+
+## Surfaces
+
+Pick one surface with `AUTO_MCP_SURFACE`. It maps to your API key scope.
+
+| Surface | Best for | Key | Tools |
+|---|---|---|---|
+| `research` | market data, macro, Polymarket discovery | Read | ~230 read tools |
+| `perps` | Hyperliquid perps with research + risk checks | Read + Write | perps + research |
+| `trading` | full agent: perps, Polymarket, wallet execution* | Read + Write | ~277 tools |
+
+\* Wallet execution includes swap, bridge, and Solana-transfer tools.
+
+`AUTO_MCP_CATEGORIES` is a power-user override. Use `AUTO_MCP_SURFACE` first.
 
 ## Why this is different
 
-- Client config needs `AUTO_API_KEY`. No private key exists client-side.
-- Read + Write keys can trade through the MCP gateway, but cannot withdraw or transfer funds.
+- Client config needs only `AUTO_API_KEY`. No private key ever exists client-side.
+- Read + Write keys can trade through the MCP gateway, but cannot withdraw or transfer funds out.
 - Paid data settles per call as USDC on Base from the user's own Auto wallet. Charged receipts include `settlementId`, the Base transaction hash.
 - Non-KYC venue coverage includes Hyperliquid and Polymarket.
 - One `npx` install exposes 230+ research tools or 277 trading tools.
 
-## Surfaces
+## Rules and skills
 
-| Surface | Best for | Key |
-|---|---|---|
-| `research` | market data, macro, Polymarket discovery | Read |
-| `perps` | Hyperliquid perps with research and risk checks | Read + Write |
-| `trading` | full trading agent: perps, Polymarket, wallet execution* | Read + Write |
+The kit ships the agent's operating discipline in two forms, both generated from
+one source (`skills/`):
 
-* Wallet execution includes swap, bridge, and Solana-transfer tools.
+- **Portable rules** ([`rules/`](rules/README.md)) — plain markdown any harness
+  can load (Codex/Cursor `AGENTS.md`, Windsurf, a system prompt). One bundle per surface.
+- **Claude skills** ([`skills/`](skills/)) — the same guidance as Claude skill cards.
 
-Manual MCP command:
+| Rule / skill | Enforces |
+|---|---|
+| `connect-auto-mcp` | setup, surface choice, validation, troubleshooting |
+| `auto-research-analyst` | market, macro, and prediction-market research |
+| `auto-perps-trader` | Hyperliquid perps sizing, leverage, and TWAP rules |
+| `auto-prediction-markets` | Polymarket discovery → token id → trade flow |
+| `auto-risk-manager` | pre-write checklist for every trade |
+| `auto-trading-brain` | markdown/Obsidian journal and lessons system |
 
-```bash
-AUTO_API_KEY=atk_... AUTO_MCP_SURFACE=research npx -y @atnms/auto-mcp
-```
+Regenerate rules after editing a skill: `node scripts/build-rules.mjs`.
 
-`AUTO_MCP_CATEGORIES` is a power-user override. Use `AUTO_MCP_SURFACE` first.
+## Claude Code plugins (one-click)
+
+Claude Code users can skip manual config: add this repo as a marketplace and
+install a plugin that bundles the MCP surface and skills.
+
+1. Add the marketplace from this repo (`.claude-plugin/marketplace.json`).
+2. Install `auto-research`, `auto-perps`, or `auto-trading`.
+3. Paste your `atk_...` key when prompted.
 
 ## Billing
 
-Paid data tools can charge small USDC amounts from your Auto wallet on Base. Trading tools are not x402-billed. Default daily paid-data cap is $10 per key. Receipts report whether a call was charged, cached, local-free, or blocked.
-
-## Skills
-
-- `connect-auto-mcp`: setup, surface choice, validation, troubleshooting.
-- `auto-research-analyst`: market, macro, and prediction-market research.
-- `auto-perps-trader`: Hyperliquid perps execution rules.
-- `auto-prediction-markets`: discovery-to-token-id-to-trade flow.
-- `auto-risk-manager`: pre-write checklist for every trade.
-- `auto-trading-brain`: markdown/Obsidian journal and lessons system.
+Paid data tools charge small USDC amounts from your Auto wallet on Base. Trading
+tools are wallet-native and not x402-billed. Default paid-data cap is $10 per key
+per day. Receipts report whether a call was charged, cached, local-free, or blocked.
 
 ## Docs
 
-Start with `docs/quickstart-claude-code.md`, `docs/api-keys.md`, and `docs/billing.md`.
+Start with [`docs/quickstart-claude-code.md`](docs/quickstart-claude-code.md),
+[`docs/api-keys.md`](docs/api-keys.md), and [`docs/billing.md`](docs/billing.md).
+Full user-facing docs live at [docs.auto.fun](https://docs.auto.fun).

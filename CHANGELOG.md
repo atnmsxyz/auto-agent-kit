@@ -2,6 +2,16 @@
 
 Semver: patch for docs and metadata, minor for new compatible behavior, major for breaking changes.
 
+## Unreleased
+
+- Add portable `rules/` — harness-neutral versions of the skill cards, generated
+  from `skills/` by `scripts/build-rules.mjs`, with per-surface `AGENTS.<surface>.md`
+  bundles for Codex, Cursor, Windsurf, Cline, and any rules-based harness.
+- Add client config examples for Cursor, Windsurf, VS Code, and Gemini CLI, plus
+  an `examples/README.md` client matrix.
+- Fix stale default host in docs and skill cards (`develop.auto.fun` → `auto.fun`).
+- Reframe `README.md` around universal install; Claude plugins are now one option.
+
 ## 0.2.1
 
 - Add package `types` + `exports` map and `prepublishOnly` build guard.
@@ -12,8 +22,6 @@ Semver: patch for docs and metadata, minor for new compatible behavior, major fo
 - Default host is now `https://auto.fun` (production). Override with `AUTO_API_URL`.
 - Public MCP gateway is live on production: research/perps/trading surfaces,
   per-call x402 USDC billing on Base, scoped Read / Read+Write API keys.
-
-## Unreleased
 
 ## 0.1.1
 
