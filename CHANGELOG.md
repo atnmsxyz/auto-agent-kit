@@ -4,6 +4,13 @@ Semver: patch for docs and metadata, minor for new compatible behavior, major fo
 
 ## Unreleased
 
+## 0.3.1
+
+- Rename data categories to the gateway's neutral labels: `derivatives`,
+  `trader-intel`, `onchain-analytics`, `market-prices`, `defi-analytics`,
+  `token-data` (old strings keep working as input aliases). Updated billing
+  docs, skill cards, and rules bundles to match.
+
 ## 0.3.0
 
 - Add portable `rules/` — harness-neutral versions of the skill cards, generated
