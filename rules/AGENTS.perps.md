@@ -62,16 +62,16 @@ Use Auto as a research terminal. Prefer tool results over memory, show freshness
 
 | User asks | Use this category |
 |---|---|
-| funding, open interest, liquidations, ETF flows | `coinglass` |
-| Hyperliquid trader/wallet intelligence | `hyperintel` |
-| CPI, rates, labor, FRED series, release dates | `macro` |
+| funding, open interest, liquidations, ETF flows | `derivatives` |
+| Hyperliquid trader/wallet intelligence | `trader-intel` |
+| CPI, rates, labor, macro series, release dates | `macro` |
 | token discovery, metadata, broad market search | `market-data` |
 | Polymarket discovery/trading context; Kalshi open-interest timeseries/tree reads only | `prediction-markets` |
 
 ## Freshness Discipline
 
 - State the timestamp or period returned by the tool.
-- FRED is official economic series data, not live prices. It can lag by release schedule.
+- Macro series are official economic data, not live prices. They can lag by release schedule.
 - For fast markets, prefer current price/orderbook/funding before drawing conclusions.
 - If a tool result is stale or missing, say so and avoid filling gaps from memory.
 

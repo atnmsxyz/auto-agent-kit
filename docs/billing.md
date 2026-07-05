@@ -8,10 +8,10 @@ Trading tools are wallet-native and are not x402-billed.
 
 | Category | USD per call |
 |---|---:|
-| coinglass | 0.005 |
-| hyperintel | 0.010 |
-| nansen | 0.010 |
-| macro / FRED | 0.002 |
+| derivatives | 0.005 |
+| trader-intel | 0.010 |
+| onchain-analytics | 0.010 |
+| macro | 0.002 |
 | market-data discovery/search | 0.002 |
 | tool listing, own wallet/positions/orders, orderbook and safety reads | free |
 
@@ -43,14 +43,14 @@ Current gateway category strings:
 | `market-data` |
 | `macro` |
 | `prediction-markets` |
-| `coinglass` |
-| `hyperintel` |
-| `nansen` |
+| `derivatives` |
+| `trader-intel` |
+| `onchain-analytics` |
 | `web-news` |
 | `technicals` |
-| `coingecko` |
-| `defillama` |
-| `codex-data` |
+| `market-prices` |
+| `defi-analytics` |
+| `token-data` |
 
 Social/X research tools are not available through this gateway and are not a
 valid category. Pair a dedicated X/social MCP with Auto MCP if you need
