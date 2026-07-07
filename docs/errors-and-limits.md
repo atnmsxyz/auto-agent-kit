@@ -124,5 +124,6 @@ Auth failures can also return `MCP_GATEWAY_AUTH_THROTTLED`.
 | `MCP_GATEWAY_KEY_RATE_LIMITED` (429) | yes, cautiously | exponential from 30–60s; pause the whole batch |
 | `MCP_INSUFFICIENT_USDC` | no | surface to user |
 | `MCP_PAID_SPEND_CAP_EXCEEDED` | no | surface to user |
+| `MCP_X402_MISCONFIGURED` | no | configuration/credential issue — surface to user/operator |
 
 Cap total retries; never loop forever.

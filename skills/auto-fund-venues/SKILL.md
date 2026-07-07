@@ -37,7 +37,7 @@ HL perp collateral is USDC delivered to the `hypercore` chain.
 
 Verified working call shape — quote first, then execute carrying `quotedAmountIn`:
 
-```
+```text
 USER_WALLET_BRIDGE_QUOTE {
   originChain: "base", destinationChain: "polygon", currency: "USDC",
   toCurrency: "0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174",
@@ -60,4 +60,4 @@ Exit nuance: sell proceeds land as **pUSD**, not USDC.e. A full cash-out to Base
 
 ## Voice
 
-State amounts, fees, and settlement time before executing. Never bridge more than the user asked to deploy.
+State amounts, fees, and settlement time before executing. Never bridge more than the user approved: the intended deployment plus the fee buffer stated in the decision flow.
