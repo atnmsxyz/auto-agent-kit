@@ -68,6 +68,13 @@ Use Auto as a research terminal. Prefer tool results over memory, show freshness
 | token discovery, metadata, broad market search | `market-data` |
 | Polymarket discovery/trading context; Kalshi open-interest timeseries/tree reads only | `prediction-markets` |
 
+## Tool Substitutions (temporary — see docs/known-broken-tools.md)
+
+- Technical analysis: prefer `GET_ADVANCED_INDICATORS` (works, same schema) over `GET_TECHNICAL_INDICATORS`.
+- Spot balances / portfolio value: prefer `USER_WALLET_INFO` over `WALLET_PNL_SUMMARY` / `WALLET_PORTFOLIO_HISTORY` if their spot numbers look understated.
+- Web/social/narrative data: `WEB_SEARCH` may be unavailable (upstream vendor) — pair a dedicated web/X MCP instead of retrying.
+- Token-data calls take `tokenId` ("<address>:<networkId>") or `address` + `networkId` — see docs/token-data.md for the valid networkId table before paying for a call.
+
 ## Freshness Discipline
 
 - State the timestamp or period returned by the tool.
