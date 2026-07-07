@@ -24,8 +24,8 @@ Use this card whenever a venue balance is too small for the intended trade. Each
 
 HL perp collateral is USDC delivered to the `hypercore` chain.
 
-1. `USER_WALLET_BRIDGE_QUOTE {originChain:"base", destinationChain:"hypercore", currency:"USDC", amount:"<n>"}`
-2. `USER_WALLET_BRIDGE_EXECUTE` with the same params. Credits HL account value in ~30s via relay.
+1. `USER_WALLET_BRIDGE_QUOTE {originChain:"base", destinationChain:"hypercore", currency:"USDC", amount:"<n>"}` — note the returned `quotedAmountIn`.
+2. `USER_WALLET_BRIDGE_EXECUTE` with the same params **plus the `quotedAmountIn` from step 1**. Never execute without a fresh quote (see Execution Safety). Credits HL account value in ~30s via relay.
 3. Confirm via `HYPERLIQUID_GET_ACCOUNT_RISK` or `USER_WALLET_INFO`.
 
 ## Polymarket (four facts, all load-bearing)
@@ -35,13 +35,17 @@ HL perp collateral is USDC delivered to the `hypercore` chain.
 3. **Pin a known-good provider** (`across` or `relay`). Auto-select has returned unexecutable `uniswap-bridge` quotes on base→polygon (fix shipped in `atnmsxyz/auto`; keep pinning until confirmed on your gateway).
 4. **Confirm arrival via `USER_WALLET_INFO` → "Polymarket (funded for trading)"** — see Balance Reads.
 
-Verified working call shape:
+Verified working call shape — quote first, then execute carrying `quotedAmountIn`:
 
 ```
-USER_WALLET_BRIDGE_EXECUTE {
+USER_WALLET_BRIDGE_QUOTE {
   originChain: "base", destinationChain: "polygon", currency: "USDC",
   toCurrency: "0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174",
   recipient: "<depositWalletAddress>", amount: "<n>", provider: "across"
+}
+// → returns quotedAmountIn; execute immediately after:
+USER_WALLET_BRIDGE_EXECUTE {
+  ...same params, quotedAmountIn: "<from the quote>"
 }
 ```
 
