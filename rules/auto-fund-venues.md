@@ -2,7 +2,7 @@
 
 # Auto Fund Venues
 
-Use this card whenever a venue balance is too small for the intended trade. Each venue has its own collateral model — bridging "USDC to Polygon" is NOT the same as funding Polymarket. Get the recipient, token, or provider wrong and funds strand on an address the venue never reads.
+Use this card whenever a venue balance is too small for the intended trade. Both the `perps` and `trading` surfaces expose the funding tools (bridge + Polymarket setup); if a tool below is missing from your catalog, switch to the `trading` surface or fund in the Auto app. Each venue has its own collateral model — bridging "USDC to Polygon" is NOT the same as funding Polymarket. Get the recipient, token, or provider wrong and funds strand on an address the venue never reads.
 
 ## Decision Flow
 
