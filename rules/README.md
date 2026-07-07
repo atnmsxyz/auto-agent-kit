@@ -25,6 +25,7 @@ Where to put it:
 
 ## Individual rules
 
+- [auto-fund-venues.md](auto-fund-venues.md)
 - [auto-perps-trader.md](auto-perps-trader.md)
 - [auto-prediction-markets.md](auto-prediction-markets.md)
 - [auto-research-analyst.md](auto-research-analyst.md)

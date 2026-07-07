@@ -55,3 +55,15 @@ Current gateway category strings:
 Social/X research tools are not available through this gateway and are not a
 valid category. Pair a dedicated X/social MCP with Auto MCP if you need
 timeline or narrative data.
+
+## Charges even on empty/invalid results (avoid wasteful calls)
+
+Some paid tools bill $0.002–$0.01 even when the answer is empty, defaulted, or wrong. **Validate your own inputs before paying** (real token/slug/address/enum/networkId) — these tools do not reject bad input, they charge for a non-answer. Prune entries below as the paired `AUTO-*` fixes ship.
+
+Charged for empty/garbage output: `GET_SIMPLE_PRICE` (invalid token → `{}`), `GET_TOKEN_SPARKLINES` (all-null), `GET_TOKEN_PAIRS` (bad networkId → count:0; see [token-data.md](token-data.md)), `GET_SPORTS_MATCH_MARKETS` (fake slug → 0 markets), `ONCHAIN_ADDRESS_RELATED_ADDRESSES` (bad address → "no data", $0.01), `ONCHAIN_GENERAL_SEARCH` (empty query → unrelated trending list, $0.01), `ONCHAIN_TRANSACTION_LOOKUP` (no-match hash), `GET_CANDLE_PATTERNS` (fake symbol → all-none).
+
+Guidance:
+
+- Treat an unexpectedly empty or cheap "no data" answer from these tools as a possible charged non-answer, not proof of absence — confirm with a free sibling read where one exists.
+- Tools that return materially wrong data while charging are tracked in [known-broken-tools.md](known-broken-tools.md).
+- `WEB_SEARCH` is currently down (upstream vendor) — for web/social/narrative data, pair a dedicated web/X MCP.
