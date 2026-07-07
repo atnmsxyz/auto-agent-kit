@@ -29,7 +29,7 @@ Pick one surface with `AUTO_MCP_SURFACE`. It maps to your API key scope.
 | Surface | Best for | Key | Tools |
 |---|---|---|---|
 | `research` | market data, macro, Polymarket discovery | Read | ~230 read tools |
-| `perps` | Hyperliquid perps with research + risk checks | Read + Write | perps + research |
+| `perps` | Hyperliquid perps with research + risk checks | Read + Write | perps + research + venue funding |
 | `trading` | full agent: perps, Polymarket, wallet execution* | Read + Write | ~277 tools |
 
 \* Wallet execution includes swap, bridge, and Solana-transfer tools.
@@ -59,6 +59,7 @@ one source (`skills/`):
 | `auto-research-analyst` | market, macro, and prediction-market research |
 | `auto-perps-trader` | Hyperliquid perps sizing, leverage, and TWAP rules |
 | `auto-prediction-markets` | Polymarket discovery → token id → trade flow |
+| `auto-fund-venues` | funding Polymarket/Hyperliquid: deposit wallets, collateral tokens, bridge safety |
 | `auto-risk-manager` | pre-write checklist for every trade |
 | `auto-trading-brain` | markdown/Obsidian journal and lessons system |
 
@@ -83,4 +84,6 @@ per day. Receipts report whether a call was charged, cached, local-free, or bloc
 
 Start with [`docs/quickstart-claude-code.md`](docs/quickstart-claude-code.md),
 [`docs/api-keys.md`](docs/api-keys.md), and [`docs/billing.md`](docs/billing.md).
+Operational references: [`docs/known-broken-tools.md`](docs/known-broken-tools.md),
+[`docs/token-data.md`](docs/token-data.md), [`docs/errors-and-limits.md`](docs/errors-and-limits.md).
 Full user-facing docs live at [docs.auto.fun](https://docs.auto.fun).

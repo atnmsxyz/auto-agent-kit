@@ -24,8 +24,8 @@ AUTO_API_KEY=atk_... AUTO_MCP_SURFACE=research npx -y @atnms/auto-mcp
 | Surface | Use when | Tools exposed |
 |---|---|---|
 | `research` | analysis, market context, macro, prediction-market discovery | read tools only |
-| `perps` | Hyperliquid perps agent with research and wallet/perps reads | research + perps order management |
-| `trading` | full external trading agent | perps, prediction markets, wallet execution, risk reads |
+| `perps` | Hyperliquid perps agent with research and wallet reads/bridging | research + perps order management + venue funding |
+| `trading` | full external trading agent | perps, prediction markets, wallet execution, venue funding, risk reads |
 
 `AUTO_MCP_CATEGORIES` exists for power users. Prefer `AUTO_MCP_SURFACE`.
 
@@ -67,6 +67,13 @@ Use Auto as a research terminal. Prefer tool results over memory, show freshness
 | CPI, rates, labor, macro series, release dates | `macro` |
 | token discovery, metadata, broad market search | `market-data` |
 | Polymarket discovery/trading context; Kalshi open-interest timeseries/tree reads only | `prediction-markets` |
+
+## Tool Substitutions (temporary — see [known-broken-tools](https://github.com/atnmsxyz/auto-agent-kit/blob/main/docs/known-broken-tools.md))
+
+- Technical analysis: prefer `GET_ADVANCED_INDICATORS` (works, same schema) over `GET_TECHNICAL_INDICATORS`.
+- Spot balances / portfolio value: use `USER_WALLET_INFO`. Do not use `WALLET_PNL_SUMMARY` / `WALLET_PORTFOLIO_HISTORY` for spot value until their fix rolls out — they understate it.
+- Web/social/narrative data: do not call `WEB_SEARCH` — it is down (upstream vendor). Pair a dedicated web/X MCP instead.
+- Token-data calls take `tokenId` ("<address>:<networkId>") or `address` + `networkId` — see [token-data](https://github.com/atnmsxyz/auto-agent-kit/blob/main/docs/token-data.md) for the valid networkId table before paying for a call.
 
 ## Freshness Discipline
 

@@ -22,8 +22,8 @@ AUTO_API_KEY=atk_... AUTO_MCP_SURFACE=research npx -y @atnms/auto-mcp
 | Surface | Use when | Tools exposed |
 |---|---|---|
 | `research` | analysis, market context, macro, prediction-market discovery | read tools only |
-| `perps` | Hyperliquid perps agent with research and wallet/perps reads | research + perps order management |
-| `trading` | full external trading agent | perps, prediction markets, wallet execution, risk reads |
+| `perps` | Hyperliquid perps agent with research and wallet reads/bridging | research + perps order management + venue funding |
+| `trading` | full external trading agent | perps, prediction markets, wallet execution, venue funding, risk reads |
 
 `AUTO_MCP_CATEGORIES` exists for power users. Prefer `AUTO_MCP_SURFACE`.
 
