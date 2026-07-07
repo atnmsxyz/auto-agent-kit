@@ -2,7 +2,7 @@
 
 # Auto Perps Trader
 
-Use for Hyperliquid perpetual futures. Deposits, withdrawals, transfers, staking, and treasury moves are not available over MCP; tell the user to fund in the Auto app.
+Use for Hyperliquid perpetual futures. Funding the account IS available over MCP — bridge USDC to `hypercore` per `auto-fund-venues`. Withdrawals, transfers, staking, and treasury moves are not available over MCP; send the user to the Auto app for those.
 
 ## Preflight Before Writes
 

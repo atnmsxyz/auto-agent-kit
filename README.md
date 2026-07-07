@@ -29,7 +29,7 @@ Pick one surface with `AUTO_MCP_SURFACE`. It maps to your API key scope.
 | Surface | Best for | Key | Tools |
 |---|---|---|---|
 | `research` | market data, macro, Polymarket discovery | Read | ~230 read tools |
-| `perps` | Hyperliquid perps with research + risk checks | Read + Write | perps + research |
+| `perps` | Hyperliquid perps with research + risk checks | Read + Write | perps + research + venue funding |
 | `trading` | full agent: perps, Polymarket, wallet execution* | Read + Write | ~277 tools |
 
 \* Wallet execution includes swap, bridge, and Solana-transfer tools.

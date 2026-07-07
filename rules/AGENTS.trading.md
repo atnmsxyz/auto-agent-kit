@@ -24,7 +24,7 @@ AUTO_API_KEY=atk_... AUTO_MCP_SURFACE=research npx -y @atnms/auto-mcp
 | Surface | Use when | Tools exposed |
 |---|---|---|
 | `research` | analysis, market context, macro, prediction-market discovery | read tools only |
-| `perps` | Hyperliquid perps agent with research and wallet/perps reads | research + perps order management |
+| `perps` | Hyperliquid perps agent with research and wallet reads/bridging | research + perps order management + venue funding |
 | `trading` | full external trading agent | perps, prediction markets, wallet execution, risk reads |
 
 `AUTO_MCP_CATEGORIES` exists for power users. Prefer `AUTO_MCP_SURFACE`.
@@ -99,7 +99,7 @@ Answer like an analyst: conclusion first, then evidence, then uncertainty. If th
 
 # Auto Perps Trader
 
-Use for Hyperliquid perpetual futures. Deposits, withdrawals, transfers, staking, and treasury moves are not available over MCP; tell the user to fund in the Auto app.
+Use for Hyperliquid perpetual futures. Funding the account IS available over MCP — bridge USDC to `hypercore` per `auto-fund-venues`. Withdrawals, transfers, staking, and treasury moves are not available over MCP; send the user to the Auto app for those.
 
 ## Preflight Before Writes
 
