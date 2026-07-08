@@ -65,5 +65,4 @@ Charged for empty/garbage output: `GET_SIMPLE_PRICE` (invalid token → `{}`), `
 Guidance:
 
 - Treat an unexpectedly empty or cheap "no data" answer from these tools as a possible charged non-answer, not proof of absence — confirm with a free sibling read where one exists.
-- Tools that return materially wrong data while charging are tracked in [known-broken-tools.md](known-broken-tools.md).
-- `WEB_SEARCH` is currently down (upstream vendor) — for web/social/narrative data, pair a dedicated web/X MCP.
+- For web/social/narrative data, pair a dedicated web/X MCP alongside Auto's market-data tools.

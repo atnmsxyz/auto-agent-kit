@@ -84,6 +84,6 @@ per day. Receipts report whether a call was charged, cached, local-free, or bloc
 
 Start with [`docs/quickstart-claude-code.md`](docs/quickstart-claude-code.md),
 [`docs/api-keys.md`](docs/api-keys.md), and [`docs/billing.md`](docs/billing.md).
-Operational references: [`docs/known-broken-tools.md`](docs/known-broken-tools.md),
-[`docs/token-data.md`](docs/token-data.md), [`docs/errors-and-limits.md`](docs/errors-and-limits.md).
+Operational references: [`docs/token-data.md`](docs/token-data.md),
+[`docs/errors-and-limits.md`](docs/errors-and-limits.md).
 Full user-facing docs live at [docs.auto.fun](https://docs.auto.fun).

@@ -4,6 +4,14 @@ Semver: patch for docs and metadata, minor for new compatible behavior, major fo
 
 ## Unreleased
 
+## 0.3.2
+
+- Replace the research skill's temporary "Tool Substitutions" section with
+  neutral "Tool Selection" guidance; regenerate rules bundles and plugin
+  skill copies to match (verified against the production gateway 2026-07-08).
+- Trim operational docs: billing guidance now points at pairing a dedicated
+  web/X MCP for narrative data.
+
 ## 0.3.1
 
 - Rename data categories to the gateway's neutral labels: `derivatives`,
