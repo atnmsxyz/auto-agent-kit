@@ -2,37 +2,30 @@
 import { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { CallToolRequestSchema, ListToolsRequestSchema, } from "@modelcontextprotocol/sdk/types.js";
-const API_URL = (process.env.AUTO_API_URL ?? "https://auto.fun").replace(/\/+$/, "");
-const API_KEY = process.env.AUTO_API_KEY;
-const GATEWAY_PATH = (process.env.AUTO_MCP_GATEWAY_PATH ??
-    (process.env.AUTO_MCP_DEV_GATEWAY === "true" ? "/api/dev/mcp" : "/api/mcp")).replace(/\/+$/, "");
-const ACTION_CATEGORIES = process.env.AUTO_MCP_CATEGORIES ?? process.env.AUTO_MCP_GATEWAY_CATEGORIES;
-const ACTION_SURFACE = process.env.AUTO_MCP_SURFACE;
-const CATEGORY_LABEL = ACTION_CATEGORIES?.trim() || ACTION_SURFACE?.trim() || "default";
+import { loadProfile } from "./profiles.js";
 const REQUEST_TIMEOUT_MS = 30_000;
-if (!API_KEY) {
-    process.stderr.write("[auto-mcp] AUTO_API_KEY is required\n");
-    process.exit(1);
+function optionValue(args, name) {
+    const index = args.indexOf(name);
+    if (index === -1)
+        return undefined;
+    const value = args[index + 1];
+    if (!value || value.startsWith("--")) {
+        throw new Error(`${name} requires a value`);
+    }
+    return value;
 }
-const authHeaders = {
-    "content-type": "application/json",
-    "x-auto-api-key": API_KEY,
-};
-function gatewayUrl(path) {
-    const url = new URL(`${API_URL}${path}`);
-    if (ACTION_CATEGORIES?.trim()) {
-        url.searchParams.set("categories", ACTION_CATEGORIES);
-    }
-    else if (ACTION_SURFACE?.trim()) {
-        url.searchParams.set("surface", ACTION_SURFACE);
-    }
-    return url.toString();
+function firstNonBlank(...values) {
+    return values.find((value) => value?.trim())?.trim();
 }
 async function fetchWithTimeout(input, init = {}) {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
     try {
-        return await fetch(input, { ...init, signal: controller.signal });
+        return await fetch(input, {
+            ...init,
+            redirect: "error",
+            signal: controller.signal,
+        });
     }
     finally {
         clearTimeout(timeout);
@@ -45,71 +38,125 @@ function toolDescription(tool) {
         : "";
     return `${writePrefix}${categoryPrefix}${tool.description}`;
 }
-async function fetchTools() {
-    const res = await fetchWithTimeout(gatewayUrl(`${GATEWAY_PATH}/tools`), {
-        headers: authHeaders,
-    });
-    if (!res.ok) {
-        throw new Error(`tools list failed: ${res.status} ${await res.text()}`);
+async function runMcpServer(args) {
+    const requestedProfile = optionValue(args, "--profile") ?? process.env.AUTO_MCP_PROFILE;
+    const environmentApiKey = firstNonBlank(process.env.AUTO_API_KEY);
+    const stored = requestedProfile || !environmentApiKey
+        ? await loadProfile(requestedProfile)
+        : null;
+    const apiKey = environmentApiKey ?? stored?.profile.apiKey;
+    if (!apiKey) {
+        throw new Error("AUTO_API_KEY is required, or run 'auto setup' to create a local profile");
     }
-    const json = (await res.json());
-    return json.data?.tools ?? [];
+    const apiUrl = (environmentApiKey
+        ? firstNonBlank(process.env.AUTO_API_URL) ?? "https://auto.fun"
+        : stored?.profile.apiUrl ?? "https://auto.fun").replace(/\/+$/, "");
+    const gatewayPath = (process.env.AUTO_MCP_GATEWAY_PATH ??
+        (process.env.AUTO_MCP_DEV_GATEWAY === "true" ? "/api/dev/mcp" : "/api/mcp")).replace(/\/+$/, "");
+    const configuredCategories = firstNonBlank(process.env.AUTO_MCP_CATEGORIES, process.env.AUTO_MCP_GATEWAY_CATEGORIES);
+    const configuredSurface = firstNonBlank(process.env.AUTO_MCP_SURFACE);
+    const actionCategories = configuredCategories ??
+        (configuredSurface ? undefined : stored?.profile.categories?.join(","));
+    const actionSurface = configuredSurface ?? stored?.profile.surface;
+    const categoryLabel = actionCategories?.trim() || actionSurface?.trim() || "default";
+    const authHeaders = {
+        "content-type": "application/json",
+        "x-auto-api-key": apiKey,
+    };
+    function gatewayUrl(path) {
+        const url = new URL(`${apiUrl}${path}`);
+        if (actionCategories?.trim()) {
+            url.searchParams.set("categories", actionCategories);
+        }
+        else if (actionSurface?.trim()) {
+            url.searchParams.set("surface", actionSurface);
+        }
+        return url.toString();
+    }
+    async function fetchTools() {
+        const response = await fetchWithTimeout(gatewayUrl(`${gatewayPath}/tools`), {
+            headers: authHeaders,
+        });
+        if (!response.ok) {
+            throw new Error(`tools list failed: ${response.status} ${await response.text()}`);
+        }
+        const json = (await response.json());
+        return json.data?.tools ?? [];
+    }
+    const server = new Server({ name: "auto-mcp", version: "0.4.0" }, {
+        capabilities: { tools: {} },
+        instructions: "API key access is enforced by Auto on every request; the selected surface only controls which tools are visible. Treat MCP annotations as conservative hints, inspect [WRITE] descriptions, and confirm write tool calls with the user before execution. Data reads may settle a disclosed USDC charge when not cached.",
+    });
+    server.setRequestHandler(ListToolsRequestSchema, async () => {
+        const tools = await fetchTools();
+        return {
+            tools: tools.map((tool) => ({
+                name: tool.name,
+                description: toolDescription(tool),
+                inputSchema: tool.inputSchema,
+                annotations: {
+                    readOnlyHint: false,
+                    destructiveHint: true,
+                    idempotentHint: false,
+                    openWorldHint: true,
+                },
+            })),
+        };
+    });
+    server.setRequestHandler(CallToolRequestSchema, async (request) => {
+        const { name, arguments: toolArguments } = request.params;
+        const response = await fetchWithTimeout(gatewayUrl(`${gatewayPath}/tools/${encodeURIComponent(name)}`), {
+            method: "POST",
+            headers: authHeaders,
+            body: JSON.stringify({ params: toolArguments ?? {} }),
+        });
+        const text = await response.text();
+        let envelope;
+        try {
+            envelope = JSON.parse(text);
+        }
+        catch {
+            return {
+                content: [{ type: "text", text: `Non-JSON response: ${text}` }],
+                isError: true,
+            };
+        }
+        if (!response.ok || envelope.success === false) {
+            return {
+                content: [
+                    {
+                        type: "text",
+                        text: `Gateway error: ${envelope.error?.message ?? text}`,
+                    },
+                ],
+                isError: true,
+            };
+        }
+        const inner = envelope.data ?? {};
+        return {
+            content: [
+                {
+                    type: "text",
+                    text: JSON.stringify({
+                        text: inner.text ?? null,
+                        error: inner.error ?? null,
+                        data: inner.data ?? null,
+                        billing: inner.billing ?? null,
+                    }, null, 2),
+                },
+            ],
+            isError: inner.actionSuccess === false,
+        };
+    });
+    await server.connect(new StdioServerTransport());
+    process.stderr.write(`[auto-mcp] connected -> ${apiUrl}${gatewayPath} (surface=${categoryLabel}, profile=${stored?.name ?? "environment"})\n`);
 }
-const server = new Server({ name: "auto-mcp", version: "0.1.1" }, { capabilities: { tools: {} } });
-server.setRequestHandler(ListToolsRequestSchema, async () => {
-    const tools = await fetchTools();
-    return {
-        tools: tools.map((tool) => ({
-            name: tool.name,
-            description: toolDescription(tool),
-            inputSchema: tool.inputSchema,
-        })),
-    };
-});
-server.setRequestHandler(CallToolRequestSchema, async (request) => {
-    const { name, arguments: args } = request.params;
-    const res = await fetchWithTimeout(gatewayUrl(`${GATEWAY_PATH}/tools/${encodeURIComponent(name)}`), {
-        method: "POST",
-        headers: authHeaders,
-        body: JSON.stringify({ params: args ?? {} }),
-    });
-    const text = await res.text();
-    let envelope;
-    try {
-        envelope = JSON.parse(text);
-    }
-    catch {
-        return {
-            content: [{ type: "text", text: `Non-JSON response: ${text}` }],
-            isError: true,
-        };
-    }
-    if (!res.ok || envelope.success === false) {
-        const msg = envelope.error?.message ?? text;
-        return {
-            content: [{ type: "text", text: `Gateway error: ${msg}` }],
-            isError: true,
-        };
-    }
-    const inner = envelope.data ?? {};
-    const payload = {
-        text: inner.text ?? null,
-        error: inner.error ?? null,
-        data: inner.data ?? null,
-        billing: inner.billing ?? null,
-    };
-    return {
-        content: [{ type: "text", text: JSON.stringify(payload, null, 2) }],
-        isError: inner.actionSuccess === false,
-    };
-});
 async function main() {
-    const transport = new StdioServerTransport();
-    await server.connect(transport);
-    process.stderr.write(`[auto-mcp] connected -> ${API_URL}${GATEWAY_PATH} (surface=${CATEGORY_LABEL})\n`);
+    const args = process.argv.slice(2);
+    await runMcpServer(args);
 }
-main().catch((err) => {
-    process.stderr.write(`[auto-mcp] fatal: ${String(err)}\n`);
+main().catch((error) => {
+    process.stderr.write(`[auto-mcp] ${error instanceof Error ? error.message : String(error)}\n`);
     process.exit(1);
 });
 //# sourceMappingURL=index.js.map

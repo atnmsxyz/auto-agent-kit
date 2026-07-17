@@ -1,12 +1,15 @@
 # Client Config Examples
 
-Every example runs the same universal command — only the config file and its
-location change per client. Replace `atk_REPLACE_ME` with your Auto API key and
-pick a surface (`research`, `perps`, or `trading`).
+Create a secure local profile first; the CLI stores the API key outside client
+configuration:
 
 ```bash
-AUTO_API_KEY=atk_... AUTO_MCP_SURFACE=research npx -y @atnms/auto-mcp
+npx -y @atnms/auto-cli@latest setup --profile research --preset research
 ```
+
+The examples select the resulting `research` profile. Change
+`AUTO_MCP_PROFILE` to another profile name when you intentionally provision a
+different tool set or Read + Write access.
 
 | Client | Example | Where it goes |
 |---|---|---|

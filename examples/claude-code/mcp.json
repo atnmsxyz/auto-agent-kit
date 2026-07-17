@@ -2,10 +2,9 @@
   "mcpServers": {
     "auto": {
       "command": "npx",
-      "args": ["-y", "@atnms/auto-mcp"],
-      "env": {
-        "AUTO_API_KEY": "atk_REPLACE_ME",
-        "AUTO_MCP_SURFACE": "research"
+		"args": ["-y", "@atnms/auto-mcp@latest"],
+		"env": {
+			"AUTO_MCP_PROFILE": "research"
       }
     }
   }

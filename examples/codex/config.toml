@@ -1,7 +1,6 @@
 [mcp_servers.auto]
 command = "npx"
-args = ["-y", "@atnms/auto-mcp"]
+args = ["-y", "@atnms/auto-mcp@latest"]
 
 [mcp_servers.auto.env]
-AUTO_API_KEY = "atk_REPLACE_ME"
-AUTO_MCP_SURFACE = "research"
+AUTO_MCP_PROFILE = "research"

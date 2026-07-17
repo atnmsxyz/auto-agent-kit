@@ -1,23 +1,28 @@
 # Claude Desktop Quickstart
 
-1. Create an Auto API key: **Read** for research, **Read + Write** for trading.
-2. Understand the consent copy: paid reads may charge USDC from your Auto wallet; write keys can place trades and cannot withdraw.
-3. Add an MCP server to `claude_desktop_config.json`:
+1. Run the wizard and choose `claude-desktop` when asked which client to install:
+
+```bash
+npx -y @atnms/auto-cli@latest setup
+```
+
+2. Choose **Research / Read** unless Claude Desktop is explicitly allowed to trade. Approve in Auto; the wizard stores the key outside Claude's config.
+3. Restart Claude Desktop and ask it to list Auto tools. Confirm Research exposes zero write tools.
+
+For manual recovery when browser handoff is unavailable, add this profile-backed server to `claude_desktop_config.json`:
 
 ```json
 {
   "mcpServers": {
     "auto": {
       "command": "npx",
-      "args": ["-y", "@atnms/auto-mcp"],
+      "args": ["-y", "@atnms/auto-mcp@latest"],
       "env": {
-        "AUTO_API_KEY": "atk_...",
-        "AUTO_MCP_SURFACE": "research"
+        "AUTO_MCP_PROFILE": "research"
       }
     }
   }
 }
 ```
 
-4. Restart Claude Desktop.
-5. Ask it to list Auto tools and call a read-only tool before using trading surfaces.
+Do not paste an API key into an LLM conversation.

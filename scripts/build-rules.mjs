@@ -9,6 +9,7 @@
 //   rules/<name>.md            one portable rule per skill
 //   rules/AGENTS.<surface>.md  a ready-to-paste bundle per MCP surface
 //   rules/README.md            how to use these in any harness
+//   plugins/auto-*/            synchronized connect skill and profile-based MCP config
 //
 // Run: node scripts/build-rules.mjs   (no dependencies)
 
@@ -42,6 +43,12 @@ const SURFACES = {
 	],
 };
 
+const PLUGIN_BY_SURFACE = {
+	research: "auto-research",
+	perps: "auto-perps",
+	trading: "auto-trading",
+};
+
 /** Split `---\n...\n---\nbody` into { meta, body }. */
 function parseSkill(text) {
 	const m = text.match(/^---\n([\s\S]*?)\n---\n?([\s\S]*)$/);
@@ -58,7 +65,7 @@ const skills = {};
 for (const name of readdirSync(skillsDir)) {
 	try {
 		const raw = readFileSync(join(skillsDir, name, "SKILL.md"), "utf8");
-		skills[name] = parseSkill(raw);
+		skills[name] = { ...parseSkill(raw), raw };
 	} catch {
 		/* not a skill dir */
 	}
@@ -129,6 +136,38 @@ Regenerate after editing \`skills/\`: \`node scripts/build-rules.mjs\`
 `;
 writeFileSync(join(outDir, "README.md"), readme);
 
+const connectSkill = skills["connect-auto-mcp"]?.raw;
+if (!connectSkill) throw new Error("Missing canonical connect-auto-mcp skill");
+for (const [surface, plugin] of Object.entries(PLUGIN_BY_SURFACE)) {
+	const pluginRoot = join(root, "plugins", plugin);
+	const pluginSkillDir = join(pluginRoot, "skills", "connect-auto-mcp");
+	const pluginSkill = connectSkill.replace(
+		"@atnms/auto-cli@latest setup",
+		`@atnms/auto-cli@latest setup --profile ${surface} --preset ${surface}`,
+	);
+	mkdirSync(pluginSkillDir, { recursive: true });
+	writeFileSync(join(pluginSkillDir, "SKILL.md"), pluginSkill);
+	writeFileSync(
+		join(pluginRoot, ".mcp.json"),
+		`${JSON.stringify(
+			{
+				mcpServers: {
+					auto: {
+						command: "npx",
+						args: ["-y", "@atnms/auto-mcp@latest"],
+							env: {
+								AUTO_MCP_PROFILE: surface,
+								AUTO_MCP_SURFACE: surface,
+							},
+					},
+				},
+			},
+			null,
+			2,
+		)}\n`,
+	);
+}
+
 console.log(
-	`Generated ${Object.keys(skills).length} rules + ${Object.keys(SURFACES).length} surface bundles in rules/`,
+	`Generated ${Object.keys(skills).length} rules + ${Object.keys(SURFACES).length} surface bundles and synchronized ${Object.keys(PLUGIN_BY_SURFACE).length} plugins`,
 );

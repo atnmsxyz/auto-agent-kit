@@ -1,3 +1,5 @@
 
 # Internal QA notes — never publish
 docs/known-broken-tools.md
+
+node_modules/
