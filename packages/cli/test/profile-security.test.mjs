@@ -407,6 +407,51 @@ test("concurrent failed setup revisions restore the original profile", async () 
 	}
 });
 
+test("a successful setup removes abandoned same-profile transaction state", async () => {
+	const home = await mkdtemp(path.join(os.tmpdir(), "auto-mcp-profile-abandoned-"));
+	const originalHome = process.env.HOME;
+	process.env.HOME = home;
+	try {
+		await saveProfile("shared", {
+			apiKey: "atk_original_key",
+			apiUrl: "https://auto.fun",
+			accessPreset: "read",
+			surface: "research",
+		});
+		await saveProfile("unrelated", {
+			apiKey: "atk_unrelated_key",
+			apiUrl: "https://auto.fun",
+			accessPreset: "read",
+			surface: "research",
+		});
+		await stageProfile("shared", {
+			apiKey: "atk_abandoned_key",
+			apiUrl: "https://auto.fun",
+			accessPreset: "read_write",
+			surface: "trading",
+		});
+		const replacement = await stageProfile("shared", {
+			apiKey: "atk_committed_key",
+			apiUrl: "https://auto.fun",
+			accessPreset: "read_write",
+			surface: "trading",
+		});
+
+		await replacement.commit();
+
+		const contents = await readFile(profilesPath(), "utf8");
+		const persisted = JSON.parse(contents);
+		assert.equal(persisted.profiles.shared.apiKey, "atk_committed_key");
+		assert.equal(persisted.profiles.unrelated.apiKey, "atk_unrelated_key");
+		assert.equal(persisted.pendingSetups, undefined);
+		assert.doesNotMatch(contents, /atk_abandoned_key|atk_original_key/);
+	} finally {
+		if (originalHome === undefined) delete process.env.HOME;
+		else process.env.HOME = originalHome;
+		await rm(home, { recursive: true, force: true });
+	}
+});
+
 test("Windows profile storage removes every prior access rule and fails closed when ACL hardening fails", async () => {
 	const root = await mkdtemp(path.join(os.tmpdir(), "auto-mcp-windows-acl-"));
 	const home = path.join(root, "home");

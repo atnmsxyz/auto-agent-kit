@@ -532,7 +532,7 @@ export async function stageProfile(name, profile) {
             const ownSetup = pendingSetups[setupId];
             if (!ownSetup)
                 return;
-            const rolledBackAncestors = [];
+            const supersededSetups = [];
             let restoreProfile = ownSetup.previousProfile;
             let restoreActiveProfile = ownSetup.previousActiveProfile;
             let restoreStoreExisted = ownSetup.previousStoreExisted;
@@ -541,19 +541,19 @@ export async function stageProfile(name, profile) {
                 const restoreKeyHash = apiKeyHash(restoreProfile.apiKey);
                 const ancestor = Object.entries(pendingSetups).find(([id, candidate]) => !visited.has(id) &&
                     candidate.profileName === profileName &&
-                    candidate.state === "rolled_back" &&
+                    (mode === "commit" || candidate.state === "rolled_back") &&
                     candidate.savedKeyHash === restoreKeyHash);
                 if (!ancestor)
                     break;
                 visited.add(ancestor[0]);
-                rolledBackAncestors.push(ancestor[0]);
+                supersededSetups.push(ancestor[0]);
                 restoreProfile = ancestor[1].previousProfile;
                 restoreActiveProfile = ancestor[1].previousActiveProfile;
                 restoreStoreExisted = ancestor[1].previousStoreExisted;
             }
             if (mode === "commit") {
                 delete pendingSetups[setupId];
-                for (const id of rolledBackAncestors)
+                for (const id of supersededSetups)
                     delete pendingSetups[id];
                 await writeProfilesFile(withPendingSetups(current.file, pendingSetups));
                 return;
@@ -567,7 +567,7 @@ export async function stageProfile(name, profile) {
                 else
                     delete profiles[profileName];
                 delete pendingSetups[setupId];
-                for (const id of rolledBackAncestors)
+                for (const id of supersededSetups)
                     delete pendingSetups[id];
                 let activeProfile = current.file.activeProfile;
                 if (activeProfile === profileName) {

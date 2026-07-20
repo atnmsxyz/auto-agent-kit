@@ -631,11 +631,7 @@ async function installCommandClient(
 	profileName: string,
 	replace: boolean,
 ): Promise<void> {
-	if (client !== "codex") {
-		await installCommandClientLocked(client, profileName, replace);
-		return;
-	}
-	const lockTarget = path.join(os.homedir(), ".auto", "mcp", "codex-client");
+	const lockTarget = path.join(os.homedir(), ".auto", "mcp", `${client}-client`);
 	await mkdir(path.dirname(lockTarget), { recursive: true, mode: 0o700 });
 	const release = await acquireDirectConfigLock(lockTarget);
 	try {

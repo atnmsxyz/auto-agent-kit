@@ -1111,6 +1111,116 @@ if (args[0] === "mcp" && args[1] === "add") {
 	}
 });
 
+test("concurrent Claude replacements serialize the complete transaction", async () => {
+	const home = await mkdtemp(path.join(os.tmpdir(), "auto-mcp-claude-concurrent-"));
+	const fakeBin = path.join(home, "bin");
+	const profilePath = path.join(home, ".auto", "mcp", "profiles.json");
+	const configPath = path.join(home, ".claude.json");
+	const removeLog = path.join(home, "claude-remove-starts");
+	await mkdir(path.dirname(profilePath), { recursive: true });
+	await mkdir(fakeBin);
+	const now = "2026-07-16T00:00:00.000Z";
+	await writeFile(
+		profilePath,
+		JSON.stringify({
+			version: 1,
+			activeProfile: "research",
+			profiles: {
+				research: {
+					apiKey: "atk_claude_research_secret",
+					apiUrl: "https://auto.test",
+					accessPreset: "read",
+					surface: "research",
+					createdAt: now,
+					updatedAt: now,
+				},
+				trading: {
+					apiKey: "atk_claude_trading_secret",
+					apiUrl: "https://auto.test",
+					accessPreset: "read_write",
+					surface: "trading",
+					createdAt: now,
+					updatedAt: now,
+				},
+			},
+		}),
+		{ mode: 0o600 },
+	);
+	await writeFile(
+		configPath,
+		`${JSON.stringify({ mcpServers: { auto: { command: "old-auto" } } })}\n`,
+		{ mode: 0o600 },
+	);
+	await writeFile(
+		path.join(fakeBin, "claude"),
+		`#!/usr/bin/env node
+import { appendFileSync, readFileSync, writeFileSync } from "node:fs";
+const args = process.argv.slice(2);
+const configPath = process.env.HOME + "/.claude.json";
+const readConfig = () => JSON.parse(readFileSync(configPath, "utf8"));
+if (args[0] === "mcp" && args[1] === "get") {
+	process.stdout.write("auto:\\n  Scope: User config (available in all your projects)\\n  Type: stdio\\n");
+	process.exit(0);
+}
+if (args[0] === "mcp" && args[1] === "remove") {
+	appendFileSync(process.env.AUTO_MCP_REMOVE_LOG, "remove\\n");
+	if (readFileSync(process.env.AUTO_MCP_REMOVE_LOG, "utf8").trim().split("\\n").length === 1) {
+		const deadline = Date.now() + 400;
+		while (Date.now() < deadline) {
+			if (readFileSync(process.env.AUTO_MCP_REMOVE_LOG, "utf8").trim().split("\\n").length > 1) break;
+			await new Promise((resolve) => setTimeout(resolve, 10));
+		}
+	}
+	const config = readConfig();
+	if (!config.mcpServers?.auto) process.exit(2);
+	delete config.mcpServers.auto;
+	writeFileSync(configPath, JSON.stringify(config));
+	process.exit(0);
+}
+if (args[0] === "mcp" && args[1] === "add-json") {
+	const config = readConfig();
+	if (config.mcpServers?.auto) process.exit(3);
+	config.mcpServers ??= {};
+	config.mcpServers.auto = JSON.parse(args.at(-1));
+	writeFileSync(configPath, JSON.stringify(config));
+}
+`,
+	);
+	await chmod(path.join(fakeBin, "claude"), 0o755);
+	const options = {
+		cwd: new URL("..", import.meta.url),
+		env: {
+			...process.env,
+			HOME: home,
+			PATH: `${fakeBin}${path.delimiter}${process.env.PATH}`,
+			AUTO_MCP_REMOVE_LOG: removeLog,
+		},
+		stdio: ["ignore", "pipe", "pipe"],
+	};
+	const argsFor = (profile) => [
+		"dist/index.js",
+		"configure",
+		"--profile",
+		profile,
+		"--install",
+		"claude-code",
+		"--replace",
+	];
+
+	try {
+		const results = await Promise.all([
+			run(process.execPath, argsFor("research"), options),
+			run(process.execPath, argsFor("trading"), options),
+		]);
+		assert.deepEqual(results.map(({ code }) => code), [0, 0], results.map(({ stderr }) => stderr).join("\n"));
+		const configured = JSON.parse(await readFile(configPath, "utf8"));
+		assert.ok(["research", "trading"].includes(configured.mcpServers.auto.env.AUTO_MCP_PROFILE));
+		assert.doesNotMatch(JSON.stringify(configured), /atk_/);
+	} finally {
+		await rm(home, { recursive: true, force: true });
+	}
+});
+
 test("Claude replacement finds a project-scoped config from a nested directory", async () => {
 	const root = await mkdtemp(path.join(os.tmpdir(), "auto-mcp-project-scope-"));
 	const home = path.join(root, "home");
