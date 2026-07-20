@@ -178,6 +178,16 @@ async function preserveWindowsAcl(source: string, target: string): Promise<void>
 	}
 }
 
+async function copyConfigBackup(source: string, target: string): Promise<void> {
+	await copyFile(source, target);
+	try {
+		await preserveWindowsAcl(source, target);
+	} catch (error) {
+		await unlinkIfExists(target);
+		throw error;
+	}
+}
+
 function parseJsonConfig(
 	contents: string,
 	configPath: string,
@@ -399,7 +409,7 @@ async function writeDirectConfigLocked(
 	let backupPath: string | null = null;
 	if (exists) {
 		backupPath = `${configPath}.bak.${new Date().toISOString().replace(/[:.]/g, "-")}`;
-		await copyFile(configPath, backupPath);
+		await copyConfigBackup(configPath, backupPath);
 	}
 	const temporary = `${configPath}.${process.pid}.${crypto.randomUUID()}.tmp`;
 	const handle = await open(temporary, "wx", mode);
@@ -612,11 +622,30 @@ async function backupClaudeConfig(
 		);
 	}
 	const backupPath = `${configPath}.auto-mcp-backup.${process.pid}.${crypto.randomUUID()}`;
-	await copyFile(configPath, backupPath);
+	await copyConfigBackup(configPath, backupPath);
 	return { configPath, backupPath, scope };
 }
 
 async function installCommandClient(
+	client: ClientId,
+	profileName: string,
+	replace: boolean,
+): Promise<void> {
+	if (client !== "codex") {
+		await installCommandClientLocked(client, profileName, replace);
+		return;
+	}
+	const lockTarget = path.join(os.homedir(), ".auto", "mcp", "codex-client");
+	await mkdir(path.dirname(lockTarget), { recursive: true, mode: 0o700 });
+	const release = await acquireDirectConfigLock(lockTarget);
+	try {
+		await installCommandClientLocked(client, profileName, replace);
+	} finally {
+		await release();
+	}
+}
+
+async function installCommandClientLocked(
 	client: ClientId,
 	profileName: string,
 	replace: boolean,

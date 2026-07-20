@@ -102,6 +102,16 @@ async function preserveWindowsAcl(source, target) {
         throw new Error(`Windows client config ACL preservation failed: ${error instanceof Error ? error.message : String(error)}`);
     }
 }
+async function copyConfigBackup(source, target) {
+    await copyFile(source, target);
+    try {
+        await preserveWindowsAcl(source, target);
+    }
+    catch (error) {
+        await unlinkIfExists(target);
+        throw error;
+    }
+}
 function parseJsonConfig(contents, configPath, allowJsonc) {
     let parsed;
     try {
@@ -301,7 +311,7 @@ async function writeDirectConfigLocked(client, profileName, replace, configPath)
     let backupPath = null;
     if (exists) {
         backupPath = `${configPath}.bak.${new Date().toISOString().replace(/[:.]/g, "-")}`;
-        await copyFile(configPath, backupPath);
+        await copyConfigBackup(configPath, backupPath);
     }
     const temporary = `${configPath}.${process.pid}.${crypto.randomUUID()}.tmp`;
     const handle = await open(temporary, "wx", mode);
@@ -476,10 +486,25 @@ async function backupClaudeConfig(inspection) {
         throw new Error(`Refusing to replace non-regular Claude config: ${configPath}`);
     }
     const backupPath = `${configPath}.auto-mcp-backup.${process.pid}.${crypto.randomUUID()}`;
-    await copyFile(configPath, backupPath);
+    await copyConfigBackup(configPath, backupPath);
     return { configPath, backupPath, scope };
 }
 async function installCommandClient(client, profileName, replace) {
+    if (client !== "codex") {
+        await installCommandClientLocked(client, profileName, replace);
+        return;
+    }
+    const lockTarget = path.join(os.homedir(), ".auto", "mcp", "codex-client");
+    await mkdir(path.dirname(lockTarget), { recursive: true, mode: 0o700 });
+    const release = await acquireDirectConfigLock(lockTarget);
+    try {
+        await installCommandClientLocked(client, profileName, replace);
+    }
+    finally {
+        await release();
+    }
+}
+async function installCommandClientLocked(client, profileName, replace) {
     const inspection = await inspectCommandClient(client);
     const exists = inspection !== null;
     if (exists && !replace) {

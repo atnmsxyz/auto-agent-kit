@@ -15,9 +15,29 @@ function optionValue(args, name) {
 function hasOption(args, name) {
     return args.includes(name);
 }
+function validateOptions(args, valueOptions, booleanOptions) {
+    for (let index = 1; index < args.length; index += 1) {
+        const argument = args[index];
+        if (valueOptions.has(argument)) {
+            index += 1;
+            continue;
+        }
+        if (booleanOptions.has(argument))
+            continue;
+        throw new Error(`Unknown option: ${argument}`);
+    }
+}
 async function main() {
     const args = process.argv.slice(2);
     if (args[0] === "setup") {
+        validateOptions(args, new Set([
+            "--profile",
+            "--preset",
+            "--client",
+            "--install",
+            "--access",
+            "--categories",
+        ]), new Set(["--no-open", "--print-only", "--replace"]));
         await runSetup({
             profileName: optionValue(args, "--profile"),
             preset: optionValue(args, "--preset"),
@@ -32,6 +52,7 @@ async function main() {
         return;
     }
     if (args[0] === "configure") {
+        validateOptions(args, new Set(["--profile", "--install"]), new Set(["--print-only", "--replace"]));
         const install = optionValue(args, "--install");
         if (!install) {
             throw new Error("configure requires --install <client[,client...]> or --install all");

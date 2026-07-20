@@ -126,7 +126,7 @@ test("rejects unsuccessful or incomplete gateway envelopes", async () => {
 	}
 });
 
-test("lists tools through stdio with stored visibility when an environment key overrides the credential", async () => {
+test("lists tools through stdio with environment settings when an environment key overrides a profile", async () => {
 	const home = await mkdtemp(path.join(os.tmpdir(), "auto-mcp-profile-"));
 	await mkdir(path.join(home, ".auto", "mcp"), { recursive: true });
 	await writeFile(
@@ -211,7 +211,7 @@ test("lists tools through stdio with stored visibility when an environment key o
 		const listed = await waitForJsonLine(child, 2);
 
 		assert.equal(seenRequest.apiKey, "atk_inherited");
-		assert.equal(seenRequest.url, "/api/mcp/tools?categories=macro");
+		assert.equal(seenRequest.url, "/api/mcp/tools");
 		assert.deepEqual(listed.result.tools, [
 			{
 				name: "COINGLASS_GET_FUNDING",
@@ -225,6 +225,63 @@ test("lists tools through stdio with stored visibility when an environment key o
 				},
 			},
 		]);
+	} finally {
+		child.kill("SIGTERM");
+		server.close();
+		await rm(home, { recursive: true, force: true });
+	}
+});
+
+test("uses a manual environment credential when a plugin profile is not stored", async () => {
+	const home = await mkdtemp(path.join(os.tmpdir(), "auto-mcp-manual-plugin-"));
+	let seenRequest = null;
+	const server = http.createServer((req, res) => {
+		seenRequest = {
+			url: req.url,
+			apiKey: req.headers["x-auto-api-key"],
+		};
+		res.setHeader("content-type", "application/json");
+		res.end(JSON.stringify({ success: true, data: { tools: [] } }));
+	});
+	server.listen(0, "127.0.0.1");
+	await once(server, "listening");
+	const child = spawn(process.execPath, ["dist/index.js"], {
+		cwd: new URL("..", import.meta.url),
+		env: {
+			...process.env,
+			HOME: home,
+			AUTO_API_KEY: "atk_manual_plugin_key",
+			AUTO_API_URL: `http://127.0.0.1:${server.address().port}`,
+			AUTO_MCP_PROFILE: "research",
+			AUTO_MCP_SURFACE: "research",
+		},
+		stdio: ["pipe", "pipe", "pipe"],
+	});
+
+	try {
+		writeJson(child, {
+			jsonrpc: "2.0",
+			id: 1,
+			method: "initialize",
+			params: {
+				protocolVersion: "2024-11-05",
+				capabilities: {},
+				clientInfo: { name: "node-test", version: "0.0.0" },
+			},
+		});
+		await waitForJsonLine(child, 1);
+		writeJson(child, {
+			jsonrpc: "2.0",
+			id: 2,
+			method: "tools/list",
+			params: {},
+		});
+		const listed = await waitForJsonLine(child, 2);
+		assert.deepEqual(listed.result.tools, []);
+		assert.deepEqual(seenRequest, {
+			url: "/api/mcp/tools?surface=research",
+			apiKey: "atk_manual_plugin_key",
+		});
 	} finally {
 		child.kill("SIGTERM");
 		server.close();

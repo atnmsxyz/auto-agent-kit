@@ -851,6 +851,56 @@ test("configure rejects a missing flag value before touching client config", asy
 	}
 });
 
+test("configure rejects an unknown flag before touching client config", async () => {
+	const home = await mkdtemp(path.join(os.tmpdir(), "auto-mcp-unknown-flag-"));
+	const profilePath = path.join(home, ".auto", "mcp", "profiles.json");
+	const cursorConfigPath = directConfigPaths(home).cursor;
+	await mkdir(path.dirname(profilePath), { recursive: true });
+	await writeFile(
+		profilePath,
+		JSON.stringify({
+			version: 1,
+			activeProfile: "research",
+			profiles: {
+				research: {
+					apiKey: "atk_must_not_configure",
+					apiUrl: "https://auto.test",
+					accessPreset: "read",
+					surface: "research",
+					createdAt: "2026-07-16T00:00:00.000Z",
+					updatedAt: "2026-07-16T00:00:00.000Z",
+				},
+			},
+		}),
+		{ mode: 0o600 },
+	);
+
+	try {
+		const result = await run(
+			process.execPath,
+			[
+				"dist/index.js",
+				"configure",
+				"--profile",
+				"research",
+				"--install",
+				"cursor",
+				"--print-onyl",
+			],
+			{
+				cwd: new URL("..", import.meta.url),
+				env: { ...process.env, HOME: home },
+				stdio: ["ignore", "pipe", "pipe"],
+			},
+		);
+		assert.equal(result.code, 1);
+		assert.match(result.stderr, /unknown option.*--print-onyl/i);
+		await assert.rejects(readFile(cursorConfigPath, "utf8"), { code: "ENOENT" });
+	} finally {
+		await rm(home, { recursive: true, force: true });
+	}
+});
+
 test("configure preflights command clients and replaces only when explicitly requested", async () => {
 	const home = await mkdtemp(path.join(os.tmpdir(), "auto-mcp-command-collision-"));
 	const fakeBin = path.join(home, "bin");
@@ -963,6 +1013,99 @@ if (args[0] === "mcp" && args[1] === "remove" && !args.includes("local")) {
 				assert.match(calls[1].args.join(" "), /mcp add/);
 			}
 		}
+	} finally {
+		await rm(home, { recursive: true, force: true });
+	}
+});
+
+test("concurrent Codex configuration serializes collision detection and installation", async () => {
+	const home = await mkdtemp(path.join(os.tmpdir(), "auto-mcp-codex-concurrent-"));
+	const fakeBin = path.join(home, "bin");
+	const profilePath = path.join(home, ".auto", "mcp", "profiles.json");
+	const marker = path.join(home, "codex-installed");
+	const commandLog = path.join(home, "codex-commands.jsonl");
+	await mkdir(path.dirname(profilePath), { recursive: true });
+	await mkdir(fakeBin);
+	await writeFile(
+		profilePath,
+		JSON.stringify({
+			version: 1,
+			activeProfile: "research",
+			profiles: {
+				research: {
+					apiKey: "atk_codex_concurrent_secret",
+					apiUrl: "https://auto.test",
+					accessPreset: "read",
+					surface: "research",
+					createdAt: "2026-07-16T00:00:00.000Z",
+					updatedAt: "2026-07-16T00:00:00.000Z",
+				},
+			},
+		}),
+		{ mode: 0o600 },
+	);
+	await writeFile(
+		path.join(fakeBin, "codex"),
+		`#!/usr/bin/env node
+import { appendFileSync, existsSync, writeFileSync } from "node:fs";
+const args = process.argv.slice(2);
+appendFileSync(process.env.AUTO_MCP_COMMAND_LOG, JSON.stringify(args) + "\\n");
+if (args[0] === "mcp" && args[1] === "get") {
+	await new Promise((resolve) => setTimeout(resolve, 300));
+	if (existsSync(process.env.AUTO_MCP_INSTALL_MARKER)) {
+		process.stdout.write('{"name":"auto"}\\n');
+		process.exit(0);
+	}
+	process.stderr.write("No MCP server named 'auto' found.\\n");
+	process.exit(1);
+}
+if (args[0] === "mcp" && args[1] === "add") {
+	writeFileSync(process.env.AUTO_MCP_INSTALL_MARKER, "installed");
+}
+`,
+	);
+	await chmod(path.join(fakeBin, "codex"), 0o755);
+	const args = [
+		"dist/index.js",
+		"configure",
+		"--profile",
+		"research",
+		"--install",
+		"codex",
+	];
+	const options = {
+		cwd: new URL("..", import.meta.url),
+		env: {
+			...process.env,
+			HOME: home,
+			PATH: `${fakeBin}${path.delimiter}${process.env.PATH}`,
+			AUTO_MCP_COMMAND_LOG: commandLog,
+			AUTO_MCP_INSTALL_MARKER: marker,
+		},
+		stdio: ["ignore", "pipe", "pipe"],
+	};
+
+	try {
+		const results = await Promise.all([
+			run(process.execPath, args, options),
+			run(process.execPath, args, options),
+		]);
+		assert.deepEqual(
+			results.map(({ code }) => code).sort(),
+			[0, 1],
+		);
+		assert.match(
+			results.find(({ code }) => code === 1).stderr,
+			/already has an MCP server named 'auto'/,
+		);
+		const calls = (await readFile(commandLog, "utf8"))
+			.trim()
+			.split("\n")
+			.map((line) => JSON.parse(line));
+		assert.equal(
+			calls.filter((call) => call[0] === "mcp" && call[1] === "add").length,
+			1,
+		);
 	} finally {
 		await rm(home, { recursive: true, force: true });
 	}

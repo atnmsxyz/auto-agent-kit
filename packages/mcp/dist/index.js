@@ -41,9 +41,7 @@ function toolDescription(tool) {
 async function runMcpServer(args) {
     const requestedProfile = optionValue(args, "--profile") ?? process.env.AUTO_MCP_PROFILE;
     const environmentApiKey = firstNonBlank(process.env.AUTO_API_KEY);
-    const stored = requestedProfile || !environmentApiKey
-        ? await loadProfile(requestedProfile)
-        : null;
+    const stored = environmentApiKey ? null : await loadProfile(requestedProfile);
     const apiKey = environmentApiKey ?? stored?.profile.apiKey;
     if (!apiKey) {
         throw new Error("AUTO_API_KEY is required, or run 'auto setup' to create a local profile");
