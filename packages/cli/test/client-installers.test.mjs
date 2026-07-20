@@ -126,6 +126,7 @@ if (args[0] === "mcp" && args[1] === "get") {
 	const env = {
 		...process.env,
 		HOME: home,
+		XDG_CONFIG_HOME: path.join(home, ".config"),
 		PATH: `${fakeBin}${path.delimiter}${process.env.PATH}`,
 		AUTO_MCP_COMMAND_LOG: commandLog,
 	};
@@ -385,6 +386,7 @@ writeFileSync(process.env.AUTO_MCP_COMMAND_LOG, JSON.stringify(process.argv.slic
 				env: {
 					...process.env,
 					HOME: home,
+					XDG_CONFIG_HOME: path.join(home, ".config"),
 					PATH: `${fakeBin}${path.delimiter}${process.env.PATH}`,
 					AUTO_MCP_COMMAND_LOG: commandLog,
 				},
@@ -542,6 +544,7 @@ appendFileSync(process.env.AUTO_MCP_COMMAND_LOG, JSON.stringify(process.argv.sli
 		env: {
 			...process.env,
 			HOME: home,
+			XDG_CONFIG_HOME: path.join(home, ".config"),
 			PATH: `${fakeBin}${path.delimiter}${process.env.PATH}`,
 			AUTO_MCP_COMMAND_LOG: commandLog,
 		},
