@@ -819,6 +819,7 @@ test("setup preserves the verified profile when acknowledgement succeeded but it
 		const profiles = JSON.parse(await readFile(path.join(home, ".auto", "mcp", "profiles.json"), "utf8"));
 		assert.equal(profiles.activeProfile, "research");
 		assert.equal(profiles.profiles.research.apiKey, "atk_ack_lost_response_key");
+		assert.equal(profiles.pendingSetups, undefined);
 	} finally {
 		server.close();
 		await rm(home, { recursive: true, force: true });
@@ -881,6 +882,7 @@ test("setup preserves the verified profile when acknowledgement completion stays
 		const profiles = JSON.parse(await readFile(path.join(home, ".auto", "mcp", "profiles.json"), "utf8"));
 		assert.equal(profiles.activeProfile, "research");
 		assert.equal(profiles.profiles.research.apiKey, "atk_ack_uncertain_key");
+		assert.equal(profiles.pendingSetups, undefined);
 	} finally {
 		server.close();
 		await rm(home, { recursive: true, force: true });

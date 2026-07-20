@@ -14,7 +14,7 @@ import os from "node:os";
 import path from "node:path";
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { profilesPath, saveProfile } from "../dist/profiles.js";
+import { profilesPath, saveProfile, stageProfile } from "../dist/profiles.js";
 
 test("profile storage waits for a fresh incomplete lock and recovers it once stale", async () => {
 	const home = await mkdtemp(path.join(os.tmpdir(), "auto-mcp-profile-stale-lock-"));
@@ -356,6 +356,50 @@ test("profile rollback serializes with a concurrent successful save", async () =
 		assert.equal(persisted.profiles.later.apiKey, "atk_later_key");
 		assert.equal(persisted.profiles.earlier, undefined);
 		assert.equal(persisted.profiles.working.apiKey, "atk_working_key");
+	} finally {
+		if (originalHome === undefined) delete process.env.HOME;
+		else process.env.HOME = originalHome;
+		await rm(home, { recursive: true, force: true });
+	}
+});
+
+test("concurrent failed setup revisions restore the original profile", async () => {
+	const home = await mkdtemp(path.join(os.tmpdir(), "auto-mcp-profile-unwind-"));
+	const originalHome = process.env.HOME;
+	process.env.HOME = home;
+	try {
+		await saveProfile("shared", {
+			apiKey: "atk_original_key",
+			apiUrl: "https://auto.fun",
+			accessPreset: "read",
+			surface: "research",
+		});
+		await saveProfile("unrelated", {
+			apiKey: "atk_unrelated_key",
+			apiUrl: "https://auto.fun",
+			accessPreset: "read",
+			surface: "research",
+		});
+		const earlier = await stageProfile("shared", {
+			apiKey: "atk_unacknowledged_earlier",
+			apiUrl: "https://auto.fun",
+			accessPreset: "read_write",
+			surface: "trading",
+		});
+		const later = await stageProfile("shared", {
+			apiKey: "atk_unacknowledged_later",
+			apiUrl: "https://auto.fun",
+			accessPreset: "read_write",
+			surface: "trading",
+		});
+
+		await earlier.rollback();
+		await later.rollback();
+
+		const persisted = JSON.parse(await readFile(profilesPath(), "utf8"));
+		assert.equal(persisted.profiles.shared.apiKey, "atk_original_key");
+		assert.equal(persisted.profiles.unrelated.apiKey, "atk_unrelated_key");
+		assert.equal(persisted.pendingSetups, undefined);
 	} finally {
 		if (originalHome === undefined) delete process.env.HOME;
 		else process.env.HOME = originalHome;

@@ -2,7 +2,7 @@ import { spawn } from "node:child_process";
 import { createInterface } from "node:readline/promises";
 import { stdin, stdout } from "node:process";
 import type { AccessPreset, McpSurface } from "./profiles.js";
-import { saveProfile, validateProfileName } from "./profiles.js";
+import { stageProfile, validateProfileName } from "./profiles.js";
 import { configureClients, parseClientList } from "./installers.js";
 
 interface SetupOptions {
@@ -480,7 +480,7 @@ export async function runSetup(options: SetupOptions): Promise<void> {
 		`Verified ${verified.toolCount} ${verified.toolCount === 1 ? "tool" : "tools"} (${verified.writeCount} write) on the ${exchange.profile.name} profile.\n`,
 	);
 
-	const rollbackProfile = await saveProfile(resolved.profileName, {
+	const stagedProfile = await stageProfile(resolved.profileName, {
 		apiKey: exchange.apiKey,
 		apiUrl,
 		accessPreset: exchange.profile.accessPreset,
@@ -491,10 +491,18 @@ export async function runSetup(options: SetupOptions): Promise<void> {
 		await acknowledgeSetup(apiUrl, started.deviceCode);
 	} catch (acknowledgementError) {
 		if (acknowledgementError instanceof SetupAcknowledgementUncertainError) {
+			try {
+				await stagedProfile.commit();
+			} catch (commitError) {
+				throw new AggregateError(
+					[acknowledgementError, commitError],
+					"Auto setup completion is uncertain and its profile transaction could not be finalized",
+				);
+			}
 			throw acknowledgementError;
 		}
 		try {
-			await rollbackProfile();
+			await stagedProfile.rollback();
 		} catch (rollbackError) {
 			throw new AggregateError(
 				[acknowledgementError, rollbackError],
@@ -503,6 +511,7 @@ export async function runSetup(options: SetupOptions): Promise<void> {
 		}
 		throw acknowledgementError;
 	}
+	await stagedProfile.commit();
 	stdout.write(
 		`Connected. Profile '${resolved.profileName}' is stored securely and ready to use.\n`,
 	);

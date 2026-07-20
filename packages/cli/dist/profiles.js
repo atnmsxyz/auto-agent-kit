@@ -85,6 +85,29 @@ function isStoredProfile(value) {
 function ownProfile(profiles, name) {
     return Object.hasOwn(profiles, name) ? profiles[name] : undefined;
 }
+function withPendingSetups(file, pendingSetups) {
+    const { pendingSetups: _discarded, ...base } = file;
+    return Object.keys(pendingSetups).length > 0
+        ? { ...base, pendingSetups }
+        : base;
+}
+function apiKeyHash(apiKey) {
+    return crypto.createHash("sha256").update(apiKey).digest("hex");
+}
+function isPendingSetup(value) {
+    if (!value || typeof value !== "object" || Array.isArray(value))
+        return false;
+    const record = value;
+    return (typeof record.profileName === "string" &&
+        PROFILE_NAME_PATTERN.test(record.profileName) &&
+        typeof record.savedKeyHash === "string" &&
+        /^[a-f0-9]{64}$/.test(record.savedKeyHash) &&
+        (record.previousProfile === undefined ||
+            isStoredProfile(record.previousProfile)) &&
+        typeof record.previousActiveProfile === "string" &&
+        typeof record.previousStoreExisted === "boolean" &&
+        (record.state === "pending" || record.state === "rolled_back"));
+}
 function parseProfileFile(contents) {
     let parsed;
     try {
@@ -109,6 +132,13 @@ function parseProfileFile(contents) {
         if (!isStoredProfile(profile)) {
             throw new Error(`Auto MCP profile '${name}' is invalid`);
         }
+    }
+    if (record.pendingSetups !== undefined &&
+        (!record.pendingSetups ||
+            typeof record.pendingSetups !== "object" ||
+            Array.isArray(record.pendingSetups) ||
+            !Object.values(record.pendingSetups).every(isPendingSetup))) {
+        throw new Error("Auto MCP profile file has invalid pending setup state");
     }
     return parsed;
 }
@@ -393,6 +423,7 @@ export async function saveProfile(name, profile) {
                     updatedAt: now,
                 },
             },
+            pendingSetups: file.pendingSetups,
         };
         await writeProfilesFile(next);
         const persisted = parseProfileFile(await readFile(profilesPath(), "utf8"));
@@ -438,11 +469,145 @@ export async function saveProfile(name, profile) {
                 }
                 return;
             }
-            await writeProfilesFile({ version: 1, activeProfile, profiles });
+            await writeProfilesFile({
+                version: 1,
+                activeProfile,
+                profiles,
+                pendingSetups: current.file.pendingSetups,
+            });
         }
         finally {
             await releaseRollback();
         }
+    };
+}
+export async function stageProfile(name, profile) {
+    const profileName = validateProfileName(name);
+    const setupId = crypto.randomUUID();
+    const release = await acquireProfilesLock();
+    try {
+        const previous = await readProfilesFile();
+        const existingProfile = ownProfile(previous.file.profiles, profileName);
+        const now = new Date().toISOString();
+        const savedProfile = {
+            ...profile,
+            createdAt: existingProfile?.createdAt ?? now,
+            updatedAt: now,
+        };
+        const next = {
+            version: 1,
+            activeProfile: profileName,
+            profiles: {
+                ...previous.file.profiles,
+                [profileName]: savedProfile,
+            },
+            pendingSetups: {
+                ...previous.file.pendingSetups,
+                [setupId]: {
+                    profileName,
+                    savedKeyHash: apiKeyHash(savedProfile.apiKey),
+                    previousProfile: existingProfile,
+                    previousActiveProfile: previous.file.activeProfile,
+                    previousStoreExisted: previous.existed,
+                    state: "pending",
+                },
+            },
+        };
+        await writeProfilesFile(next);
+        const persisted = parseProfileFile(await readFile(profilesPath(), "utf8"));
+        if (ownProfile(persisted.profiles, profileName)?.apiKey !== profile.apiKey) {
+            throw new Error("Auto MCP profile verification failed after staging");
+        }
+    }
+    finally {
+        await release();
+    }
+    async function finish(mode) {
+        const releaseFinish = await acquireProfilesLock();
+        try {
+            const current = await readProfilesFile();
+            if (!current.existed)
+                return;
+            const pendingSetups = { ...current.file.pendingSetups };
+            const ownSetup = pendingSetups[setupId];
+            if (!ownSetup)
+                return;
+            const rolledBackAncestors = [];
+            let restoreProfile = ownSetup.previousProfile;
+            let restoreActiveProfile = ownSetup.previousActiveProfile;
+            let restoreStoreExisted = ownSetup.previousStoreExisted;
+            const visited = new Set();
+            while (restoreProfile) {
+                const restoreKeyHash = apiKeyHash(restoreProfile.apiKey);
+                const ancestor = Object.entries(pendingSetups).find(([id, candidate]) => !visited.has(id) &&
+                    candidate.profileName === profileName &&
+                    candidate.state === "rolled_back" &&
+                    candidate.savedKeyHash === restoreKeyHash);
+                if (!ancestor)
+                    break;
+                visited.add(ancestor[0]);
+                rolledBackAncestors.push(ancestor[0]);
+                restoreProfile = ancestor[1].previousProfile;
+                restoreActiveProfile = ancestor[1].previousActiveProfile;
+                restoreStoreExisted = ancestor[1].previousStoreExisted;
+            }
+            if (mode === "commit") {
+                delete pendingSetups[setupId];
+                for (const id of rolledBackAncestors)
+                    delete pendingSetups[id];
+                await writeProfilesFile(withPendingSetups(current.file, pendingSetups));
+                return;
+            }
+            const currentProfile = ownProfile(current.file.profiles, profileName);
+            if (currentProfile &&
+                apiKeyHash(currentProfile.apiKey) === ownSetup.savedKeyHash) {
+                const profiles = { ...current.file.profiles };
+                if (restoreProfile)
+                    profiles[profileName] = restoreProfile;
+                else
+                    delete profiles[profileName];
+                delete pendingSetups[setupId];
+                for (const id of rolledBackAncestors)
+                    delete pendingSetups[id];
+                let activeProfile = current.file.activeProfile;
+                if (activeProfile === profileName) {
+                    activeProfile =
+                        restoreActiveProfile && ownProfile(profiles, restoreActiveProfile)
+                            ? restoreActiveProfile
+                            : (Object.keys(profiles)[0] ?? "");
+                }
+                if (!restoreStoreExisted && Object.keys(profiles).length === 0) {
+                    await unlinkIfExists(profilesPath());
+                    return;
+                }
+                await writeProfilesFile(withPendingSetups({
+                    version: 1,
+                    activeProfile,
+                    profiles,
+                }, pendingSetups));
+                return;
+            }
+            const currentIsPending = currentProfile
+                ? Object.entries(pendingSetups).some(([id, candidate]) => id !== setupId &&
+                    candidate.profileName === profileName &&
+                    candidate.state === "pending" &&
+                    candidate.savedKeyHash === apiKeyHash(currentProfile.apiKey))
+                : false;
+            if (currentIsPending) {
+                pendingSetups[setupId] = { ...ownSetup, state: "rolled_back" };
+            }
+            else {
+                delete pendingSetups[setupId];
+            }
+            await writeProfilesFile(withPendingSetups(current.file, pendingSetups));
+        }
+        finally {
+            await releaseFinish();
+        }
+    }
+    return {
+        commit: async () => await finish("commit"),
+        rollback: async () => await finish("rollback"),
     };
 }
 //# sourceMappingURL=profiles.js.map

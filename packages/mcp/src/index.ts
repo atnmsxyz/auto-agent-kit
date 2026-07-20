@@ -27,6 +27,14 @@ function optionValue(args: string[], name: string): string | undefined {
 	return value;
 }
 
+function validateArguments(args: string[]): void {
+	if (args.length === 0 || args[0] === "--profile") {
+		if (args.length <= 2) return;
+		throw new Error(`Unknown option: ${args[2]}`);
+	}
+	throw new Error(`Unknown option: ${args[0]}`);
+}
+
 function firstNonBlank(...values: Array<string | undefined>): string | undefined {
 	return values.find((value) => value?.trim())?.trim();
 }
@@ -57,6 +65,7 @@ function toolDescription(tool: ToolDescriptor): string {
 }
 
 async function runMcpServer(args: string[]): Promise<void> {
+	validateArguments(args);
 	const requestedProfile =
 		optionValue(args, "--profile") ?? process.env.AUTO_MCP_PROFILE;
 	const environmentApiKey = firstNonBlank(process.env.AUTO_API_KEY);

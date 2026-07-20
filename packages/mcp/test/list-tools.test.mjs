@@ -56,6 +56,54 @@ test("rejects a missing --profile value instead of falling back", async () => {
 	assert.match(stderr, /--profile requires a value/i);
 });
 
+test("rejects malformed profile arguments instead of using the active profile", async () => {
+	const home = await mkdtemp(path.join(os.tmpdir(), "auto-mcp-malformed-args-"));
+	await mkdir(path.join(home, ".auto", "mcp"), { recursive: true });
+	await writeFile(
+		path.join(home, ".auto", "mcp", "profiles.json"),
+		JSON.stringify({
+			version: 1,
+			activeProfile: "trading",
+			profiles: {
+				trading: {
+					apiKey: "atk_must_not_be_loaded",
+					apiUrl: "https://auto.test",
+					accessPreset: "read_write",
+					surface: "trading",
+					createdAt: "2026-01-01T00:00:00.000Z",
+					updatedAt: "2026-01-01T00:00:00.000Z",
+				},
+			},
+		}),
+	);
+
+	try {
+		for (const args of [["--profile=research"], ["--profle", "research"]]) {
+			const child = spawn(process.execPath, ["dist/index.js", ...args], {
+				cwd: new URL("..", import.meta.url),
+				env: { ...process.env, HOME: home, AUTO_API_KEY: "" },
+				stdio: ["ignore", "pipe", "pipe"],
+			});
+			let stderr = "";
+			child.stderr.on("data", (chunk) => {
+				stderr += chunk.toString("utf8");
+			});
+			const outcome = await Promise.race([
+				once(child, "exit").then(([code]) => ({ exited: true, code })),
+				new Promise((resolve) =>
+					setTimeout(() => resolve({ exited: false, code: null }), 1_000),
+				),
+			]);
+			if (!outcome.exited) child.kill("SIGTERM");
+			assert.equal(outcome.exited, true, args.join(" "));
+			assert.equal(outcome.code, 1, args.join(" "));
+			assert.match(stderr, /unknown option/i);
+		}
+	} finally {
+		await rm(home, { recursive: true, force: true });
+	}
+});
+
 test("rejects unsuccessful or incomplete gateway envelopes", async () => {
 	const gateway = http.createServer((req, res) => {
 		res.setHeader("content-type", "application/json");
