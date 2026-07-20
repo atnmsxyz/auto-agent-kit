@@ -1,0 +1,49 @@
+name: Release @atnms/auto-cli
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "packages/cli/**"
+  workflow_dispatch: {}
+
+concurrency:
+  group: release-cli
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    defaults:
+      run:
+        working-directory: packages/cli
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          registry-url: "https://registry.npmjs.org"
+      - name: Install
+        run: npm ci
+      - name: Build
+        run: npm run build
+      - name: Test
+        run: npm test
+      - name: Verify compatible MCP runtime is published
+        run: node ../../scripts/wait-for-mcp-runtime.mjs
+      - name: Publish if version is new
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          NAME=$(node -p "require('./package.json').name")
+          VERSION=$(node -p "require('./package.json').version")
+          if npm view "$NAME@$VERSION" version >/dev/null 2>&1; then
+            echo "$NAME@$VERSION already published — skipping."
+            exit 0
+          fi
+          echo "Publishing $NAME@$VERSION"
+          npm publish --access public

@@ -1,0 +1,35 @@
+{
+  "name": "@atnms/auto-cli",
+  "version": "0.1.0",
+  "autoMcpRuntimeVersion": "0.4.0",
+  "description": "Interactive setup CLI for Auto MCP clients.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/atnmsxyz/auto-agent-kit.git"
+  },
+  "homepage": "https://github.com/atnmsxyz/auto-agent-kit#readme",
+  "type": "module",
+  "bin": {
+    "auto": "./dist/index.js"
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "test": "node --test test/*.test.mjs",
+    "prepublishOnly": "npm run build"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "devDependencies": {
+    "@types/node": "^20.19.0",
+    "typescript": "^5.8.3"
+  },
+  "dependencies": {
+    "jsonc-parser": "^3.3.1"
+  }
+}

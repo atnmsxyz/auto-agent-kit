@@ -1,9 +1,16 @@
 # Hermes MCP Example
 
-Hermes MCP configuration varies by build. Use the same process contract:
+Hermes MCP configuration varies by build. Create a secure local profile first:
 
 ```bash
-AUTO_API_KEY=atk_REPLACE_ME AUTO_MCP_SURFACE=research npx -y @atnms/auto-mcp
+npx -y @atnms/auto-cli@latest setup --profile research --preset research
 ```
 
-For a trading agent, switch `AUTO_MCP_SURFACE` to `perps` or `trading` and use a Read + Write key.
+Then use the same profile-backed process contract as the other examples:
+
+```bash
+AUTO_MCP_PROFILE=research npx -y @atnms/auto-mcp@latest
+```
+
+For a trading agent, provision a separate Read + Write profile and use its name
+in `AUTO_MCP_PROFILE`.

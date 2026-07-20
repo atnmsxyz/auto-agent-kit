@@ -4,6 +4,22 @@ Semver: patch for docs and metadata, minor for new compatible behavior, major fo
 
 ## Unreleased
 
+- Split interactive authorization and client installation into the new
+  `@atnms/auto-cli` package while keeping `@atnms/auto-mcp` a thin stdio proxy.
+- Make every supported installer collision-safe, keep API keys out of client
+  configuration, and synchronize profile-based setup instructions into plugins.
+
+## 0.4.0
+
+- Add interactive browser authorization with Research, Perps trading, Full
+  trading, and Advanced custom profiles. Store credentials in owner-only named
+  profiles instead of MCP client configurations.
+- Add safe installers for Claude Code, Claude Desktop, Codex, Cursor, Windsurf,
+  VS Code, and Gemini CLI, including print-only review, backups, and explicit
+  replacement for existing direct JSON entries.
+- Mark MCP tools with read/write safety annotations and document the distinction
+  between enforced API access and visible tool surfaces or categories.
+
 ## 0.3.2
 
 - Replace the research skill's temporary "Tool Substitutions" section with

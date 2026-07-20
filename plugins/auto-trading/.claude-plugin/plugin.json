@@ -1,5 +1,5 @@
 {
   "name": "auto-trading",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Full Auto MCP trading surface with perps, prediction markets, risk, and Agent Brain skills."
 }

@@ -1,18 +1,24 @@
 # Codex Quickstart
 
-1. Create an Auto API key in the UI.
-2. Choose **Read** unless this Codex session is allowed to trade. Choose **Read + Write** only for explicit trading work.
-3. The consent copy means paid data tools can charge small USDC amounts from your Auto wallet; Read + Write can place trades but cannot withdraw.
-4. Add an MCP server to Codex config:
+1. Run the wizard and choose `codex` when asked which client to install:
+
+```bash
+npx -y @atnms/auto-cli@latest setup
+```
+
+2. Choose **Research / Read** unless this Codex session is allowed to trade. Choose **Read + Write** only for explicit trading work.
+3. Approve in the browser. The wizard stores the key in an owner-only local profile and adds only `AUTO_MCP_PROFILE` to Codex.
+4. Restart Codex and ask it to list Auto tools. Confirm Research exposes zero write tools.
+
+For manual recovery when browser handoff is unavailable, add an MCP server to Codex config:
 
 ```toml
 [mcp_servers.auto]
 command = "npx"
-args = ["-y", "@atnms/auto-mcp"]
+args = ["-y", "@atnms/auto-mcp@latest"]
 
 [mcp_servers.auto.env]
-AUTO_API_KEY = "atk_..."
-AUTO_MCP_SURFACE = "research"
+AUTO_MCP_PROFILE = "research"
 ```
 
-5. Restart Codex and ask it to list Auto tools.
+Do not paste an API key into an LLM conversation.

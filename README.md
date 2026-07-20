@@ -2,29 +2,33 @@
 
 Auto Agent Kit lets **any** MCP-capable agent — Claude Code, Claude Desktop,
 Codex, Cursor, Windsurf, Cline, Gemini CLI, Hermes, or your own harness — use
-[Auto](https://auto.fun) through one `npx` package, plus portable operating
-rules and Claude plugins.
+[Auto](https://auto.fun) through an interactive setup CLI and a thin MCP runtime,
+plus portable operating rules and Claude plugins.
 
 ## Quick start (any harness)
 
-1. Create an Auto API key in the app (**Read** for research, **Read + Write** to trade).
-2. Point your MCP client at the package:
+1. Start the setup wizard:
 
    ```bash
-   AUTO_API_KEY=atk_... AUTO_MCP_SURFACE=research npx -y @atnms/auto-mcp
+   npx -y @atnms/auto-cli@latest setup
    ```
 
-3. Restart the client and ask it to list Auto tools.
-4. (Optional) Load the matching rules bundle from [`rules/`](rules/README.md) so
+2. Sign in to Auto in the browser, choose **Read** or **Read + Write**, then approve the visible tool set.
+3. Let the wizard store the key in an owner-only local profile and configure your MCP client without copying the key into its config.
+4. Restart the client and ask it to list Auto tools.
+5. (Optional) Load the matching rules bundle from [`rules/`](rules/README.md) so
    the agent follows Auto's risk and execution discipline.
-5. Trade only after the risk rules have checked the setup.
+6. Trade only after the risk rules have checked the setup.
 
-Config for each client lives in [`examples/`](examples/README.md) — the command
-is identical everywhere; only the config file changes.
+The wizard supports Claude Code, Claude Desktop, Codex, Cursor, Windsurf, VS Code,
+and Gemini CLI. Manual examples remain in [`examples/`](examples/README.md) for
+environments where browser handoff is unavailable.
 
-## Surfaces
+## API access and visible tools
 
-Pick one surface with `AUTO_MCP_SURFACE`. It maps to your API key scope.
+These are separate controls. **Read** or **Read + Write** is enforced by Auto on
+every request. A surface or custom category only controls which tools the agent
+sees and cannot grant more permission than the key has.
 
 | Surface | Best for | Key | Tools |
 |---|---|---|---|
@@ -34,15 +38,16 @@ Pick one surface with `AUTO_MCP_SURFACE`. It maps to your API key scope.
 
 \* Wallet execution includes swap, bridge, and Solana-transfer tools.
 
-`AUTO_MCP_CATEGORIES` is a power-user override. Use `AUTO_MCP_SURFACE` first.
+The wizard also offers an Advanced custom profile for selecting API access and
+visible categories independently. Research is the safest default.
 
 ## Why this is different
 
-- Client config needs only `AUTO_API_KEY`. No private key ever exists client-side.
+- Client config needs only `AUTO_MCP_PROFILE`. The API key stays in the protected local profile; no private key ever exists client-side.
 - Read + Write keys can trade through the MCP gateway, but cannot withdraw or transfer funds out.
 - Paid data settles per call as USDC on Base from the user's own Auto wallet. Charged receipts include `settlementId`, the Base transaction hash.
 - Non-KYC venue coverage includes Hyperliquid and Polymarket.
-- One `npx` install exposes 230+ research tools or 277 trading tools.
+- One guided setup connects the thin MCP runtime and exposes the approved tool set.
 
 ## Rules and skills
 
@@ -72,7 +77,7 @@ install a plugin that bundles the MCP surface and skills.
 
 1. Add the marketplace from this repo (`.claude-plugin/marketplace.json`).
 2. Install `auto-research`, `auto-perps`, or `auto-trading`.
-3. Paste your `atk_...` key when prompted.
+3. Run the setup wizard and select the plugin's matching profile. Do not paste credentials into an LLM conversation.
 
 ## Billing
 
@@ -82,8 +87,9 @@ per day. Receipts report whether a call was charged, cached, local-free, or bloc
 
 ## Docs
 
-Start with [`docs/quickstart-claude-code.md`](docs/quickstart-claude-code.md),
-[`docs/api-keys.md`](docs/api-keys.md), and [`docs/billing.md`](docs/billing.md).
+Start with [`docs/api-keys.md`](docs/api-keys.md) and
+[`docs/quickstart-claude-code.md`](docs/quickstart-claude-code.md),
+[`docs/quickstart-codex.md`](docs/quickstart-codex.md), and [`docs/billing.md`](docs/billing.md).
 Operational references: [`docs/token-data.md`](docs/token-data.md),
 [`docs/errors-and-limits.md`](docs/errors-and-limits.md).
 Full user-facing docs live at [docs.auto.fun](https://docs.auto.fun).
