@@ -27,7 +27,7 @@ function run(command, args, options) {
 			stderr += chunk.toString("utf8");
 		});
 		child.once("error", reject);
-		child.once("exit", (code) => resolve({ code, stdout, stderr }));
+		child.once("close", (code) => resolve({ code, stdout, stderr }));
 	});
 }
 
@@ -165,8 +165,8 @@ if (args[0] === "mcp" && args[1] === "get") {
 				command: process.platform === "win32" ? "cmd" : "npx",
 				args:
 					process.platform === "win32"
-						? ["/c", "npx", "-y", "@atnms/auto-mcp@latest"]
-						: ["-y", "@atnms/auto-mcp@latest"],
+						? ["/c", "npx", "-y", "@atnms/auto-mcp@0.4.0"]
+						: ["-y", "@atnms/auto-mcp@0.4.0"],
 				env: { AUTO_MCP_PROFILE: "perps-bot" },
 			});
 			assert.doesNotMatch(contents, new RegExp(apiKey));
@@ -398,8 +398,8 @@ writeFileSync(process.env.AUTO_MCP_COMMAND_LOG, JSON.stringify(process.argv.slic
 			command: process.platform === "win32" ? "cmd" : "npx",
 			args:
 				process.platform === "win32"
-					? ["/c", "npx", "-y", "@atnms/auto-mcp@latest"]
-					: ["-y", "@atnms/auto-mcp@latest"],
+					? ["/c", "npx", "-y", "@atnms/auto-mcp@0.4.0"]
+					: ["-y", "@atnms/auto-mcp@0.4.0"],
 			env: { AUTO_MCP_PROFILE: "research" },
 		});
 		await assert.rejects(readFile(commandLog, "utf8"), { code: "ENOENT" });
@@ -719,7 +719,7 @@ test("concurrent configure calls cannot overwrite another initial direct install
 	}
 });
 
-test("configure recovers an old direct-config lock whose PID has been reused", async () => {
+test("configure preserves a live long-running lock and recovers a reused PID", async () => {
 	const home = await mkdtemp(path.join(os.tmpdir(), "auto-mcp-config-reused-pid-"));
 	const profilePath = path.join(home, ".auto", "mcp", "profiles.json");
 	const cursorConfigPath = directConfigPaths(home).cursor;
@@ -744,11 +744,47 @@ test("configure recovers an old direct-config lock whose PID has been reused", a
 	);
 	await mkdir(path.dirname(cursorConfigPath), { recursive: true });
 	const lockPath = `${cursorConfigPath}.auto.lock`;
-	await writeFile(lockPath, JSON.stringify({ pid: process.pid }), "utf8");
+	await writeFile(
+		lockPath,
+		JSON.stringify({
+			pid: process.pid,
+			startedAt: Date.now() - process.uptime() * 1_000,
+		}),
+		"utf8",
+	);
 	const staleAt = new Date(Date.now() - 60_000);
 	await utimes(lockPath, staleAt, staleAt);
 
 	try {
+		const liveOwnerChild = spawn(
+			process.execPath,
+			["dist/index.js", "configure", "--profile", "research", "--install", "cursor"],
+			{
+				cwd: new URL("..", import.meta.url),
+				env: { ...process.env, HOME: home },
+				stdio: ["ignore", "pipe", "pipe"],
+			},
+		);
+		const liveOwnerOutcome = await Promise.race([
+			new Promise((resolve) =>
+				liveOwnerChild.once("close", (code) => resolve({ closed: true, code })),
+			),
+			new Promise((resolve) =>
+				setTimeout(() => resolve({ closed: false, code: null }), 150),
+			),
+		]);
+		assert.equal(liveOwnerOutcome.closed, false);
+		liveOwnerChild.kill("SIGTERM");
+		if (!liveOwnerOutcome.closed) {
+			await new Promise((resolve) => liveOwnerChild.once("close", resolve));
+		}
+
+		await writeFile(
+			lockPath,
+			JSON.stringify({ pid: process.pid, startedAt: 0 }),
+			"utf8",
+		);
+		await utimes(lockPath, staleAt, staleAt);
 		const result = await run(
 			process.execPath,
 			["dist/index.js", "configure", "--profile", "research", "--install", "cursor"],
@@ -1004,7 +1040,7 @@ if (args[0] === "mcp" && args[1] === "get") {
 		assert.deepEqual(calls[1], ["mcp", "remove", "auto", "--scope", "project"]);
 		assert.deepEqual(calls[2].slice(0, 4), ["mcp", "add-json", "--scope", "project"]);
 		assert.deepEqual(JSON.parse(await readFile(projectConfig, "utf8")), originalConfig);
-		assert.deepEqual(await readdir(project), [".mcp.json", "packages"]);
+		assert.deepEqual((await readdir(project)).sort(), [".mcp.json", "packages"]);
 	} finally {
 		await rm(root, { recursive: true, force: true });
 	}

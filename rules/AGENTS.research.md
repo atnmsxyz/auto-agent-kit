@@ -16,7 +16,7 @@ Ask the user to run the wizard in a real interactive terminal. Do not execute it
 Have the user run:
 
 ```bash
-npx -y @atnms/auto-cli@latest setup
+npx -y @atnms/auto-cli@0.1.0 setup
 ```
 
 Let the wizard open Auto in the user's browser. If the user is signed out, tell them to sign in and continue the same request. The generated key is delivered directly to `~/.auto/mcp/profiles.json`; do not request or display it.
@@ -37,13 +37,13 @@ Recommend **Research** unless the user explicitly needs trading. Offer:
 | Full trading | Read + Write | all trading tools allowed by the gateway |
 | Advanced custom | user chooses | selected categories only |
 
-For Advanced custom, ask for API access first, then categories. Do not describe categories as permissions. Before Read + Write approval, remind the user that the connection can place and manage trades and should be given only to an agent they trust.
+For Advanced custom, ask for API access first, then categories. Do not describe categories as permissions. Default to Read unless the user explicitly chooses Read + Write. Before Read + Write approval, remind the user that the connection can place and manage trades and should be given only to an agent they trust. Proceed only after the user explicitly confirms Read + Write, the target client, and the local profile name.
 
 ## Client Configuration
 
 Ask which supported client to configure: `claude-code`, `claude-desktop`, `codex`, `cursor`, `windsurf`, `vscode`, or `gemini`.
 
-The installer writes only `AUTO_MCP_PROFILE=<name>` to client configuration and launches `@atnms/auto-mcp@latest` as the runtime. It must not write the API key. If an `auto` server already exists, inspect it and use `--replace` only with the user's intent. Use `npx -y @atnms/auto-cli@latest configure --profile <name> --install <client> --print-only` when the client is unavailable or the user wants to review changes first.
+The installer writes only `AUTO_MCP_PROFILE=<name>` to client configuration and launches `@atnms/auto-mcp@0.4.0` as the runtime. It must not write the API key. If an `auto` server already exists, inspect it and use `--replace` only with the user's intent. Use `npx -y @atnms/auto-cli@0.1.0 configure --profile <name> --install <client> --print-only` when the client is unavailable or the user wants to review changes first.
 
 ## Validation Sequence
 
@@ -56,7 +56,7 @@ The installer writes only `AUTO_MCP_PROFILE=<name>` to client configuration and 
 ## Troubleshooting
 
 - Denied or expired setup: run `setup` again; the old request cannot be reused.
-- Client unavailable: use `npx -y @atnms/auto-cli@latest configure --profile <name> --install <client> --print-only`.
+- Client unavailable: use `npx -y @atnms/auto-cli@0.1.0 configure --profile <name> --install <client> --print-only`.
 - Existing `auto` server: inspect it before using `--replace`.
 - Corrupt profile file: move `~/.auto/mcp/profiles.json` aside, rerun setup, and revoke the old key in Auto.
 - 401: profile key missing, revoked, or expired.

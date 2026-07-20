@@ -60,17 +60,43 @@ test("profile storage waits for a fresh incomplete lock and recovers it once sta
 	}
 });
 
-test("profile storage recovers an old lock whose PID has been reused by a live process", async () => {
+test("profile storage distinguishes a live long-running owner from a reused PID", async () => {
 	const home = await mkdtemp(path.join(os.tmpdir(), "auto-mcp-profile-reused-pid-"));
 	const originalHome = process.env.HOME;
 	process.env.HOME = home;
 	try {
 		await mkdir(path.dirname(profilesPath()), { recursive: true });
 		const lockPath = `${profilesPath()}.lock`;
-		await writeFile(lockPath, JSON.stringify({ pid: process.pid }), "utf8");
+		await writeFile(
+			lockPath,
+			JSON.stringify({
+				pid: process.pid,
+				startedAt: Date.now() - process.uptime() * 1_000,
+			}),
+			"utf8",
+		);
 		const staleAt = new Date(Date.now() - 60_000);
 		await utimes(lockPath, staleAt, staleAt);
+		const liveOwnerSave = saveProfile("live-owner", {
+			apiKey: "atk_live_owner_key",
+			apiUrl: "https://auto.fun",
+			accessPreset: "read",
+			surface: "research",
+		});
+		const liveOwnerOutcome = await Promise.race([
+			liveOwnerSave.then(() => "saved"),
+			new Promise((resolve) => setTimeout(() => resolve("waiting"), 100)),
+		]);
+		assert.equal(liveOwnerOutcome, "waiting");
+		await unlink(lockPath);
+		await liveOwnerSave;
 
+		await writeFile(
+			lockPath,
+			JSON.stringify({ pid: process.pid, startedAt: 0 }),
+			"utf8",
+		);
+		await utimes(lockPath, staleAt, staleAt);
 		await saveProfile("reused-pid", {
 			apiKey: "atk_reused_pid_key",
 			apiUrl: "https://auto.fun",
@@ -79,6 +105,7 @@ test("profile storage recovers an old lock whose PID has been reused by a live p
 		});
 
 		const persisted = JSON.parse(await readFile(profilesPath(), "utf8"));
+		assert.equal(persisted.profiles["live-owner"].apiKey, "atk_live_owner_key");
 		assert.equal(persisted.profiles["reused-pid"].apiKey, "atk_reused_pid_key");
 	} finally {
 		if (originalHome === undefined) delete process.env.HOME;

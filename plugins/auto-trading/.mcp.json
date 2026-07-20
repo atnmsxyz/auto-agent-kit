@@ -4,7 +4,7 @@
       "command": "npx",
       "args": [
         "-y",
-        "@atnms/auto-mcp@latest"
+        "@atnms/auto-mcp@0.4.0"
       ],
       "env": {
         "AUTO_MCP_PROFILE": "trading",

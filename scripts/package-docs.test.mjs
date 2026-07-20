@@ -23,10 +23,12 @@ test("published package docs keep setup in auto-cli and runtime in auto-mcp", as
 	assert.match(cliReadme, /Read \+ Write/);
 	assert.match(cliReadme, /--print-only/);
 	assert.match(cliReadme, /--replace/);
+	const mcpReadme = await contents("packages/mcp/README.md");
+	assert.match(mcpReadme, /@atnms\/auto-cli@0\.1\.0 setup/);
+	assert.match(mcpReadme, /@atnms\/auto-mcp@0\.4\.0/);
 
 	for (const document of [
 		"README.md",
-		"packages/mcp/README.md",
 		"docs/api-keys.md",
 		"docs/quickstart-claude-code.md",
 		"docs/quickstart-claude-desktop.md",

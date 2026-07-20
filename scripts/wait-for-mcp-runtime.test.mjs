@@ -55,3 +55,59 @@ process.stdout.write("0.4.0\\n");
 		await rm(directory, { recursive: true, force: true });
 	}
 });
+
+test("release gate rejects partial numbers and bounds hung npm probes", async () => {
+	const directory = await mkdtemp(path.join(tmpdir(), "auto-runtime-timeout-"));
+	const countFile = path.join(directory, "count");
+	const npmPath = path.join(directory, "npm");
+	await writeFile(
+		npmPath,
+		`#!/usr/bin/env node
+import { appendFileSync } from "node:fs";
+appendFileSync(process.env.FAKE_NPM_COUNT_FILE, "probe\\n");
+setInterval(() => {}, 1_000);
+`,
+	);
+	await chmod(npmPath, 0o755);
+	const baseOptions = {
+		cwd: root,
+		env: {
+			...process.env,
+			PATH: `${directory}:${process.env.PATH}`,
+			FAKE_NPM_COUNT_FILE: countFile,
+			AUTO_MCP_RUNTIME_RETRY_MS: "0",
+			AUTO_MCP_RUNTIME_PROBE_TIMEOUT_MS: "500",
+		},
+		timeout: 2_000,
+	};
+
+	try {
+		await assert.rejects(
+			execFileAsync(process.execPath, ["scripts/wait-for-mcp-runtime.mjs"], {
+				...baseOptions,
+				env: {
+					...baseOptions.env,
+					AUTO_MCP_RUNTIME_ATTEMPTS: "2oops",
+				},
+			}),
+			/Runtime wait settings must be non-negative integers/i,
+		);
+		let hungError;
+		try {
+			await execFileAsync(process.execPath, ["scripts/wait-for-mcp-runtime.mjs"], {
+				...baseOptions,
+				env: {
+					...baseOptions.env,
+					AUTO_MCP_RUNTIME_ATTEMPTS: "2",
+				},
+			});
+		} catch (error) {
+			hungError = error;
+		}
+		assert.ok(hungError);
+		assert.match(hungError.stdout, /retrying \(1\/2\)/);
+		assert.equal(await readFile(countFile, "utf8"), "probe\n".repeat(2));
+	} finally {
+		await rm(directory, { recursive: true, force: true });
+	}
+});

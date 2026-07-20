@@ -14,6 +14,12 @@ import os from "node:os";
 import path from "node:path";
 import crypto from "node:crypto";
 import { promisify } from "node:util";
+import {
+	currentProcessLockOwner,
+	processIsRunning,
+	processMatchesLockOwner,
+	type ProcessLockOwner,
+} from "./process-lock.js";
 
 export type AccessPreset = "read" | "read_write";
 export type McpSurface = "research" | "perps" | "trading";
@@ -179,15 +185,6 @@ function wait(milliseconds: number): Promise<void> {
 	return new Promise((resolve) => setTimeout(resolve, milliseconds));
 }
 
-function processIsRunning(pid: number): boolean {
-	try {
-		process.kill(pid, 0);
-		return true;
-	} catch (error) {
-		return (error as NodeJS.ErrnoException).code !== "ESRCH";
-	}
-}
-
 async function prepareProfilesDirectory(): Promise<void> {
 	const directory = path.dirname(profilesPath());
 	await mkdir(directory, { recursive: true, mode: 0o700 });
@@ -204,11 +201,9 @@ async function unlinkIfExists(target: string): Promise<void> {
 }
 
 async function lockFileIsAbandoned(target: string): Promise<boolean> {
-	let owner: { pid?: unknown } | undefined;
+	let owner: Partial<ProcessLockOwner> | undefined;
 	try {
-		owner = JSON.parse(await readFile(target, "utf8")) as {
-			pid?: unknown;
-		};
+		owner = JSON.parse(await readFile(target, "utf8")) as Partial<ProcessLockOwner>;
 	} catch (error) {
 		if ((error as NodeJS.ErrnoException).code === "ENOENT") return true;
 		if (!(error instanceof SyntaxError)) throw error;
@@ -225,8 +220,9 @@ async function lockFileIsAbandoned(target: string): Promise<boolean> {
 		typeof ownerPid === "number" &&
 		Number.isInteger(ownerPid) &&
 		ownerPid > 0;
-	if (Date.now() - modifiedAt >= PROFILE_LOCK_STALE_MS) return true;
-	return hasValidPid ? !processIsRunning(ownerPid as number) : false;
+	if (hasValidPid && !processIsRunning(ownerPid)) return true;
+	if (Date.now() - modifiedAt < PROFILE_LOCK_STALE_MS) return false;
+	return !(await processMatchesLockOwner(owner ?? {}));
 }
 
 async function recoverAbandonedRecoveryGuard(
@@ -269,7 +265,10 @@ async function recoverAbandonedProfilesLock(
 		throw error;
 	}
 	try {
-		await recoveryHandle.writeFile(JSON.stringify({ pid: process.pid }), "utf8");
+		await recoveryHandle.writeFile(
+			JSON.stringify(currentProcessLockOwner()),
+			"utf8",
+		);
 		await recoveryHandle.sync();
 	} catch (error) {
 		await recoveryHandle.close();
@@ -308,7 +307,10 @@ async function acquireProfilesLock(): Promise<() => Promise<void>> {
 			const handle = await open(lockPath, "wx", 0o600);
 			let initializationError: unknown;
 			try {
-				await handle.writeFile(JSON.stringify({ pid: process.pid }), "utf8");
+				await handle.writeFile(
+					JSON.stringify(currentProcessLockOwner()),
+					"utf8",
+				);
 				await handle.sync();
 			} catch (error) {
 				initializationError = error;

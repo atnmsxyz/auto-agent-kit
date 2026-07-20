@@ -142,8 +142,8 @@ for (const [surface, plugin] of Object.entries(PLUGIN_BY_SURFACE)) {
 	const pluginRoot = join(root, "plugins", plugin);
 	const pluginSkillDir = join(pluginRoot, "skills", "connect-auto-mcp");
 	const pluginSkill = connectSkill.replace(
-		"@atnms/auto-cli@latest setup",
-		`@atnms/auto-cli@latest setup --profile ${surface} --preset ${surface}`,
+		"@atnms/auto-cli@0.1.0 setup",
+		`@atnms/auto-cli@0.1.0 setup --profile ${surface} --preset ${surface}`,
 	);
 	mkdirSync(pluginSkillDir, { recursive: true });
 	writeFileSync(join(pluginSkillDir, "SKILL.md"), pluginSkill);
@@ -154,7 +154,7 @@ for (const [surface, plugin] of Object.entries(PLUGIN_BY_SURFACE)) {
 				mcpServers: {
 					auto: {
 						command: "npx",
-						args: ["-y", "@atnms/auto-mcp@latest"],
+						args: ["-y", "@atnms/auto-mcp@0.4.0"],
 							env: {
 								AUTO_MCP_PROFILE: surface,
 								AUTO_MCP_SURFACE: surface,

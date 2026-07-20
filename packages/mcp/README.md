@@ -7,7 +7,7 @@ Thin stdio proxy for the Auto MCP Gateway.
 Interactive setup belongs to `@atnms/auto-cli`:
 
 ```bash
-npx -y @atnms/auto-cli@latest setup
+npx -y @atnms/auto-cli@0.1.0 setup
 ```
 
 The wizard opens Auto for sign-in and approval, creates a Read or Read + Write
@@ -22,7 +22,7 @@ categories only control tool visibility and cannot grant permission.
 Review client configuration without changing it:
 
 ```bash
-npx -y @atnms/auto-cli@latest configure \
+npx -y @atnms/auto-cli@0.1.0 configure \
   --profile research \
   --install all \
   --print-only
@@ -30,14 +30,30 @@ npx -y @atnms/auto-cli@latest configure \
 
 ## Profile-backed server
 
-The wizard installs an equivalent server definition:
+On macOS or Linux, the wizard installs an equivalent server definition:
 
 ```json
 {
   "mcpServers": {
     "auto": {
       "command": "npx",
-      "args": ["-y", "@atnms/auto-mcp@latest"],
+      "args": ["-y", "@atnms/auto-mcp@0.4.0"],
+      "env": {
+        "AUTO_MCP_PROFILE": "research"
+      }
+    }
+  }
+}
+```
+
+On Windows, use the command-shell wrapper:
+
+```json
+{
+  "mcpServers": {
+    "auto": {
+      "command": "cmd",
+      "args": ["/c", "npx", "-y", "@atnms/auto-mcp@0.4.0"],
       "env": {
         "AUTO_MCP_PROFILE": "research"
       }

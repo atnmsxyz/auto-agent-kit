@@ -81,7 +81,10 @@ async function runMcpServer(args) {
             throw new Error(`tools list failed: ${response.status} ${await response.text()}`);
         }
         const json = (await response.json());
-        return json.data?.tools ?? [];
+        if (json.success !== true || !Array.isArray(json.data?.tools)) {
+            throw new Error("tools list failed: invalid gateway response");
+        }
+        return json.data.tools;
     }
     const server = new Server({ name: "auto-mcp", version: "0.4.0" }, {
         capabilities: { tools: {} },
@@ -121,7 +124,7 @@ async function runMcpServer(args) {
                 isError: true,
             };
         }
-        if (!response.ok || envelope.success === false) {
+        if (!response.ok || envelope.success !== true) {
             return {
                 content: [
                     {
@@ -132,7 +135,16 @@ async function runMcpServer(args) {
                 isError: true,
             };
         }
-        const inner = envelope.data ?? {};
+        if (!envelope.data ||
+            typeof envelope.data.actionSuccess !== "boolean") {
+            return {
+                content: [
+                    { type: "text", text: "Invalid gateway response" },
+                ],
+                isError: true,
+            };
+        }
+        const inner = envelope.data;
         return {
             content: [
                 {

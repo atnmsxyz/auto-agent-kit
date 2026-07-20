@@ -15,7 +15,7 @@ function run(command, args, options) {
 		child.stdout.on("data", (chunk) => (stdout += chunk.toString("utf8")));
 		child.stderr.on("data", (chunk) => (stderr += chunk.toString("utf8")));
 		child.once("error", reject);
-		child.once("exit", (code) => resolve({ code, stdout, stderr }));
+		child.once("close", (code) => resolve({ code, stdout, stderr }));
 	});
 }
 
@@ -43,12 +43,12 @@ test("advanced setup keeps Read access separate from custom tool categories", as
 				userCode: "WXYZ-2345",
 				verificationUri: "https://auto.test/settings/mcp-setup?user_code=WXYZ-2345",
 				expiresAt: Date.now() + 60_000,
-				intervalSeconds: 0,
+				intervalSeconds: 0.001,
 				profile: {
 					id: "custom",
 					name: "Custom tool set",
 					accessPreset: startAccess,
-					surface: "research",
+					surface: startAccess === "read_write" ? "trading" : "research",
 					categories: ["market-prices", "macro"],
 				},
 			} }));
@@ -59,7 +59,7 @@ test("advanced setup keeps Read access separate from custom tool categories", as
 				id: "custom",
 				name: "Custom tool set",
 				accessPreset: tokenAccess,
-				surface: "research",
+				surface: tokenAccess === "read_write" ? "trading" : "research",
 				categories: ["market-prices", "macro"],
 			} } }));
 			return;
@@ -137,6 +137,7 @@ test("advanced setup keeps Read access separate from custom tool categories", as
 				await readFile(path.join(home, ".auto", "mcp", "profiles.json"), "utf8"),
 			).profiles["write-key-read-tools"];
 			assert.equal(writeKeyProfile.accessPreset, "read_write");
+			assert.equal(writeKeyProfile.surface, "trading");
 			assert.deepEqual(writeKeyProfile.categories, ["market-prices", "macro"]);
 
 			startAccess = "read";

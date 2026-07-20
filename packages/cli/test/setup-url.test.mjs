@@ -18,7 +18,7 @@ function run(command, args, options) {
 			stderr += chunk.toString("utf8");
 		});
 		child.once("error", reject);
-		child.once("exit", (code) => resolve({ code, stdout, stderr }));
+		child.once("close", (code) => resolve({ code, stdout, stderr }));
 	});
 }
 
@@ -46,7 +46,7 @@ globalThis.fetch = async (input) => {
     userCode: "ABCD-EFGH",
     verificationUri: "https://auto.fun/settings/mcp-setup?user_code=ABCD-EFGH",
     expiresAt: Date.now() + 60000,
-    intervalSeconds: 0,
+    intervalSeconds: 0.001,
     profile: { id: "research", name: "Research", accessPreset: "read", surface: "research" }
   }, 201);
   if (url.endsWith("/api/auth/mcp-setup/token")) return response({

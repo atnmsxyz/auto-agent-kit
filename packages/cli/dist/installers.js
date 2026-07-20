@@ -5,6 +5,7 @@ import path from "node:path";
 import crypto from "node:crypto";
 import { promisify } from "node:util";
 import { applyEdits, modify, parse, printParseErrorCode, } from "jsonc-parser";
+import { currentProcessLockOwner, processIsRunning, processMatchesLockOwner, } from "./process-lock.js";
 const execFileAsync = promisify(execFile);
 const DIRECT_CONFIG_LOCK_RETRY_MS = 25;
 const DIRECT_CONFIG_LOCK_TIMEOUT_MS = 5_000;
@@ -22,12 +23,12 @@ function serverDefinition(profileName) {
     return process.platform === "win32"
         ? {
             command: "cmd",
-            args: ["/c", "npx", "-y", "@atnms/auto-mcp@latest"],
+            args: ["/c", "npx", "-y", "@atnms/auto-mcp@0.4.0"],
             env: { AUTO_MCP_PROFILE: profileName },
         }
         : {
             command: "npx",
-            args: ["-y", "@atnms/auto-mcp@latest"],
+            args: ["-y", "@atnms/auto-mcp@0.4.0"],
             env: { AUTO_MCP_PROFILE: profileName },
         };
 }
@@ -148,15 +149,6 @@ async function readDirectConfig(client, configPath) {
 function wait(milliseconds) {
     return new Promise((resolve) => setTimeout(resolve, milliseconds));
 }
-function processIsRunning(pid) {
-    try {
-        process.kill(pid, 0);
-        return true;
-    }
-    catch (error) {
-        return error.code !== "ESRCH";
-    }
-}
 async function unlinkIfExists(target) {
     try {
         await unlink(target);
@@ -187,14 +179,14 @@ async function directConfigLockIsAbandoned(target) {
         throw error;
     }
     const ownerPid = owner?.pid;
-    if (Date.now() - modifiedAt >= DIRECT_CONFIG_LOCK_STALE_MS)
-        return true;
-    if (typeof ownerPid === "number" &&
+    const hasValidPid = typeof ownerPid === "number" &&
         Number.isInteger(ownerPid) &&
-        ownerPid > 0) {
-        return !processIsRunning(ownerPid);
-    }
-    return false;
+        ownerPid > 0;
+    if (hasValidPid && !processIsRunning(ownerPid))
+        return true;
+    if (Date.now() - modifiedAt < DIRECT_CONFIG_LOCK_STALE_MS)
+        return false;
+    return !(await processMatchesLockOwner(owner ?? {}));
 }
 async function recoverAbandonedDirectConfigLock(lockPath) {
     const claimPath = `${lockPath}.${process.pid}.${crypto.randomUUID()}.claim`;
@@ -235,7 +227,7 @@ async function acquireDirectConfigLock(configPath) {
         try {
             const handle = await open(lockPath, "wx", 0o600);
             try {
-                await handle.writeFile(JSON.stringify({ pid: process.pid }), "utf8");
+                await handle.writeFile(JSON.stringify(currentProcessLockOwner()), "utf8");
                 await handle.sync();
             }
             catch (error) {
@@ -301,8 +293,9 @@ async function writeDirectConfigLocked(client, profileName, replace, configPath)
             },
         }))
         : `${JSON.stringify(next, null, 2)}\n`;
+    let backupPath = null;
     if (exists) {
-        const backupPath = `${configPath}.bak.${new Date().toISOString().replace(/[:.]/g, "-")}`;
+        backupPath = `${configPath}.bak.${new Date().toISOString().replace(/[:.]/g, "-")}`;
         await copyFile(configPath, backupPath);
     }
     const temporary = `${configPath}.${process.pid}.${crypto.randomUUID()}.tmp`;
@@ -324,8 +317,23 @@ async function writeDirectConfigLocked(client, profileName, replace, configPath)
         await unlink(temporary).catch(() => undefined);
         throw writeError;
     }
-    await rename(temporary, configPath);
-    await chmod(configPath, mode);
+    try {
+        await rename(temporary, configPath);
+        await chmod(configPath, mode);
+    }
+    catch (error) {
+        await unlinkIfExists(temporary);
+        try {
+            if (backupPath)
+                await copyFile(backupPath, configPath);
+            else
+                await unlinkIfExists(configPath);
+        }
+        catch (rollbackError) {
+            throw new AggregateError([error, rollbackError], `Failed to finalize and restore ${configPath}`);
+        }
+        throw error;
+    }
     return configPath;
 }
 function clientCommand(client, profileName, claudeScope = "user") {

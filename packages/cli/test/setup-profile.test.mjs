@@ -19,7 +19,7 @@ function run(command, args, options) {
 			stderr += chunk.toString("utf8");
 		});
 		child.once("error", reject);
-		child.once("exit", (code) => resolve({ code, stdout, stderr }));
+		child.once("close", (code) => resolve({ code, stdout, stderr }));
 	});
 }
 
@@ -46,7 +46,7 @@ function waitForJsonLine(proc, id) {
 			}
 		};
 		proc.stdout.on("data", onData);
-		proc.once("exit", (code) => reject(new Error(`child exited ${code}`)));
+		proc.once("close", (code) => reject(new Error(`child exited ${code}`)));
 	});
 }
 
@@ -71,7 +71,7 @@ test("setup securely stores a named profile and tolerates an unavailable browser
 						verificationUri:
 							"https://auto.test/settings/mcp-setup?user_code=ABCD-EFGH",
 						expiresAt: Date.now() + 60_000,
-						intervalSeconds: 0,
+						intervalSeconds: 0.001,
 						profile: {
 							id: "perps",
 							name: "Perps trading",
@@ -281,7 +281,7 @@ test("setup rejects an empty verified tool catalog before persistence or acknowl
 						userCode: "ZERO-TOOL",
 						verificationUri: "https://auto.test/settings/mcp-setup?user_code=ZERO-TOOL",
 						expiresAt: Date.now() + 60_000,
-						intervalSeconds: 0,
+						intervalSeconds: 0.001,
 						profile: {
 							id: "research",
 							name: "Research",
@@ -385,7 +385,7 @@ test("setup rejects profile-verification redirects before forwarding the issued 
 				userCode: "NO-RDRCT",
 				verificationUri: "https://auto.test/settings/mcp-setup?user_code=NO-RDRCT",
 				expiresAt: Date.now() + 60_000,
-				intervalSeconds: 0,
+				intervalSeconds: 0.001,
 				profile: { id: "research", name: "Research", accessPreset: "read", surface: "research" },
 			} }));
 			return;
@@ -471,7 +471,7 @@ test("setup restores the previous active profile when acknowledgement fails", as
 				userCode: "ROLL-BACK",
 				verificationUri: "https://auto.test/settings/mcp-setup?user_code=ROLL-BACK",
 				expiresAt: Date.now() + 60_000,
-				intervalSeconds: 0,
+				intervalSeconds: 0.001,
 				profile: { id: "research", name: "Research", accessPreset: "read", surface: "research" },
 			} }));
 			return;
@@ -530,7 +530,7 @@ test("setup retries an ambiguous acknowledgement before completing setup", async
 				userCode: "ACKR-ETRY",
 				verificationUri: "https://auto.test/settings/mcp-setup?user_code=ACKR-ETRY",
 				expiresAt: Date.now() + 60_000,
-				intervalSeconds: 0,
+				intervalSeconds: 0.001,
 				profile: { id: "research", name: "Research", accessPreset: "read", surface: "research" },
 			} }));
 			return;
@@ -594,7 +594,7 @@ test("setup retries transient token exchange failures until the authorization su
 				userCode: "TOKN-RETY",
 				verificationUri: "https://auto.test/settings/mcp-setup?user_code=TOKN-RETY",
 				expiresAt: Date.now() + 60_000,
-				intervalSeconds: 0,
+				intervalSeconds: 0.001,
 				profile: { id: "research", name: "Research", accessPreset: "read", surface: "research" },
 			} }));
 			return;
@@ -665,7 +665,7 @@ test("setup fails immediately when token exchange reports a terminal authorizati
 				userCode: "TOKN-DENY",
 				verificationUri: "https://auto.test/settings/mcp-setup?user_code=TOKN-DENY",
 				expiresAt: Date.now() + 60_000,
-				intervalSeconds: 0,
+				intervalSeconds: 0.001,
 				profile: { id: "research", name: "Research", accessPreset: "read", surface: "research" },
 			} }));
 			return;
@@ -716,7 +716,7 @@ test("setup preserves the verified profile when acknowledgement succeeded but it
 				userCode: "ACKL-OST1",
 				verificationUri: "https://auto.test/settings/mcp-setup?user_code=ACKL-OST1",
 				expiresAt: Date.now() + 60_000,
-				intervalSeconds: 0,
+				intervalSeconds: 0.001,
 				profile: { id: "research", name: "Research", accessPreset: "read", surface: "research" },
 			} }));
 			return;
@@ -788,7 +788,7 @@ test("setup preserves the verified profile when acknowledgement completion stays
 				userCode: "ACKU-NCERT",
 				verificationUri: "https://auto.test/settings/mcp-setup?user_code=ACKU-NCERT",
 				expiresAt: Date.now() + 60_000,
-				intervalSeconds: 0,
+				intervalSeconds: 0.001,
 				profile: { id: "research", name: "Research", accessPreset: "read", surface: "research" },
 			} }));
 			return;

@@ -98,7 +98,12 @@ function profileMatchesRequest(
 			: request.preset === "custom"
 				? request.accessPreset
 				: "read_write";
-	const expectedSurface = request.preset === "custom" ? "research" : request.preset;
+	const expectedSurface =
+		request.preset === "custom"
+			? request.accessPreset === "read_write"
+				? "trading"
+				: "research"
+			: request.preset;
 	return (
 		profile.id === request.preset &&
 		profile.accessPreset === expectedAccess &&
@@ -410,6 +415,14 @@ export async function runSetup(options: SetupOptions): Promise<void> {
 	);
 	if (!profileMatchesRequest(started.profile, resolved)) {
 		throw new Error("Auto returned a setup profile that does not match the request");
+	}
+	if (
+		!Number.isFinite(started.intervalSeconds) ||
+		started.intervalSeconds <= 0 ||
+		!Number.isFinite(started.expiresAt) ||
+		started.expiresAt <= Date.now()
+	) {
+		throw new Error("Auto returned invalid authorization timing");
 	}
 
 	stdout.write(`\nOpen Auto in your browser:\n${started.verificationUri}\n`);

@@ -4,6 +4,7 @@ import os from "node:os";
 import path from "node:path";
 import crypto from "node:crypto";
 import { promisify } from "node:util";
+import { currentProcessLockOwner, processIsRunning, processMatchesLockOwner, } from "./process-lock.js";
 const PROFILE_NAME_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$/;
 const PROFILE_LOCK_RETRY_MS = 25;
 const PROFILE_LOCK_TIMEOUT_MS = 5_000;
@@ -123,15 +124,6 @@ async function readProfilesFile() {
 function wait(milliseconds) {
     return new Promise((resolve) => setTimeout(resolve, milliseconds));
 }
-function processIsRunning(pid) {
-    try {
-        process.kill(pid, 0);
-        return true;
-    }
-    catch (error) {
-        return error.code !== "ESRCH";
-    }
-}
 async function prepareProfilesDirectory() {
     const directory = path.dirname(profilesPath());
     await mkdir(directory, { recursive: true, mode: 0o700 });
@@ -171,9 +163,11 @@ async function lockFileIsAbandoned(target) {
     const hasValidPid = typeof ownerPid === "number" &&
         Number.isInteger(ownerPid) &&
         ownerPid > 0;
-    if (Date.now() - modifiedAt >= PROFILE_LOCK_STALE_MS)
+    if (hasValidPid && !processIsRunning(ownerPid))
         return true;
-    return hasValidPid ? !processIsRunning(ownerPid) : false;
+    if (Date.now() - modifiedAt < PROFILE_LOCK_STALE_MS)
+        return false;
+    return !(await processMatchesLockOwner(owner ?? {}));
 }
 async function recoverAbandonedRecoveryGuard(recoveryPath) {
     const claimPath = `${recoveryPath}.${process.pid}.${crypto.randomUUID()}.claim`;
@@ -218,7 +212,7 @@ async function recoverAbandonedProfilesLock(lockPath, recoveryPath) {
         throw error;
     }
     try {
-        await recoveryHandle.writeFile(JSON.stringify({ pid: process.pid }), "utf8");
+        await recoveryHandle.writeFile(JSON.stringify(currentProcessLockOwner()), "utf8");
         await recoveryHandle.sync();
     }
     catch (error) {
@@ -261,7 +255,7 @@ async function acquireProfilesLock() {
             const handle = await open(lockPath, "wx", 0o600);
             let initializationError;
             try {
-                await handle.writeFile(JSON.stringify({ pid: process.pid }), "utf8");
+                await handle.writeFile(JSON.stringify(currentProcessLockOwner()), "utf8");
                 await handle.sync();
             }
             catch (error) {

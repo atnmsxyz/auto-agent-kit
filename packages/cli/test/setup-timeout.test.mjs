@@ -9,7 +9,7 @@ import { test } from "node:test";
 
 const packageRoot = new URL("..", import.meta.url);
 
-async function runSetupWithDeadline(apiUrl, home) {
+async function runSetupWithDeadline(apiUrl, home, requestTimeoutMs = 50) {
 	const child = spawn(
 		process.execPath,
 		[
@@ -29,7 +29,7 @@ async function runSetupWithDeadline(apiUrl, home) {
 				...process.env,
 				HOME: home,
 				AUTO_API_URL: apiUrl,
-				AUTO_MCP_SETUP_REQUEST_TIMEOUT_MS: "50",
+				AUTO_MCP_SETUP_REQUEST_TIMEOUT_MS: String(requestTimeoutMs),
 			},
 			stdio: ["ignore", "pipe", "pipe"],
 		},
@@ -43,7 +43,7 @@ async function runSetupWithDeadline(apiUrl, home) {
 		stderr += chunk.toString("utf8");
 	});
 	const watchdog = setTimeout(() => child.kill("SIGTERM"), 1_500);
-	const [code, signal] = await once(child, "exit");
+	const [code, signal] = await once(child, "close");
 	clearTimeout(watchdog);
 	return { code, signal, stdout, stderr };
 }
@@ -80,7 +80,7 @@ test("setup aborts stalled authorization and profile-verification requests", asy
 					userCode: "TIME-OUT1",
 					verificationUri: "https://auto.test/settings/mcp-setup?user_code=TIME-OUT1",
 					expiresAt: Date.now() + 60_000,
-					intervalSeconds: 0,
+					intervalSeconds: 0.001,
 					profile: {
 						id: "research",
 						name: "Research",
@@ -116,6 +116,51 @@ test("setup aborts stalled authorization and profile-verification requests", asy
 	} finally {
 		stalledVerification.closeAllConnections();
 		stalledVerification.close();
+		await rm(home, { recursive: true, force: true });
+	}
+});
+
+test("setup rejects invalid authorization timing before polling", async () => {
+	const home = await mkdtemp(path.join(os.tmpdir(), "auto-mcp-invalid-timing-"));
+	let tokenRequests = 0;
+	const server = http.createServer((req, res) => {
+		res.setHeader("content-type", "application/json");
+		if (req.url === "/api/auth/mcp-setup/authorizations") {
+			res.statusCode = 201;
+			res.end(
+				JSON.stringify({
+					success: true,
+					data: {
+						deviceCode: "invalid-timing-device-code-that-is-long-enough",
+						userCode: "TIME-BAD1",
+						verificationUri:
+							"https://auto.test/settings/mcp-setup?user_code=TIME-BAD1",
+						expiresAt: Date.now() + 60_000,
+						intervalSeconds: 0,
+						profile: {
+							id: "research",
+							name: "Research",
+							accessPreset: "read",
+							surface: "research",
+						},
+					},
+				}),
+			);
+			return;
+		}
+		if (req.url === "/api/auth/mcp-setup/token") tokenRequests += 1;
+		res.end(JSON.stringify({ success: false, error: { message: "unexpected" } }));
+	});
+	const apiUrl = await listen(server);
+
+	try {
+		const result = await runSetupWithDeadline(apiUrl, home, 1_000);
+		assert.equal(result.code, 1, result.stderr);
+		assert.equal(result.signal, null);
+		assert.match(result.stderr, /invalid authorization timing/i);
+		assert.equal(tokenRequests, 0);
+	} finally {
+		server.close();
 		await rm(home, { recursive: true, force: true });
 	}
 });

@@ -16,16 +16,32 @@ if (typeof runtimeVersion !== "string" || runtimeVersion.length === 0) {
 	throw new Error("packages/cli/package.json must declare autoMcpRuntimeVersion");
 }
 
-const attempts = Number.parseInt(process.env.AUTO_MCP_RUNTIME_ATTEMPTS ?? "30", 10);
-const retryMs = Number.parseInt(process.env.AUTO_MCP_RUNTIME_RETRY_MS ?? "10000", 10);
-if (!Number.isInteger(attempts) || attempts < 1 || !Number.isInteger(retryMs) || retryMs < 0) {
-	throw new Error("Runtime wait settings must be non-negative integers with at least one attempt");
+function integerSetting(name, fallback, minimum) {
+	const raw = process.env[name] ?? fallback;
+	if (!/^\d+$/.test(raw)) {
+		throw new Error("Runtime wait settings must be non-negative integers with at least one attempt");
+	}
+	const value = Number(raw);
+	if (!Number.isSafeInteger(value) || value < minimum) {
+		throw new Error("Runtime wait settings must be non-negative integers with at least one attempt");
+	}
+	return value;
 }
+
+const attempts = integerSetting("AUTO_MCP_RUNTIME_ATTEMPTS", "30", 1);
+const retryMs = integerSetting("AUTO_MCP_RUNTIME_RETRY_MS", "10000", 0);
+const probeTimeoutMs = integerSetting(
+	"AUTO_MCP_RUNTIME_PROBE_TIMEOUT_MS",
+	"10000",
+	1,
+);
 
 const runtime = `@atnms/auto-mcp@${runtimeVersion}`;
 for (let attempt = 1; attempt <= attempts; attempt += 1) {
 	try {
-		await execFileAsync("npm", ["view", runtime, "version"]);
+		await execFileAsync("npm", ["view", runtime, "version"], {
+			timeout: probeTimeoutMs,
+		});
 		process.stdout.write(`${runtime} is published\n`);
 		process.exit(0);
 	} catch (error) {

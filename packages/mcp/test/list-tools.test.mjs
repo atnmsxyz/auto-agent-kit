@@ -56,6 +56,76 @@ test("rejects a missing --profile value instead of falling back", async () => {
 	assert.match(stderr, /--profile requires a value/i);
 });
 
+test("rejects unsuccessful or incomplete gateway envelopes", async () => {
+	const gateway = http.createServer((req, res) => {
+		res.setHeader("content-type", "application/json");
+		if (req.method === "GET") {
+			res.end(
+				JSON.stringify({
+					success: false,
+					data: { tools: [] },
+					error: { message: "list denied" },
+				}),
+			);
+			return;
+		}
+		res.end(
+			JSON.stringify({
+				success: true,
+				data: { text: "missing action outcome" },
+			}),
+		);
+	});
+	gateway.listen(0, "127.0.0.1");
+	await once(gateway, "listening");
+	const child = spawn(process.execPath, ["dist/index.js"], {
+		cwd: new URL("..", import.meta.url),
+		env: {
+			...process.env,
+			AUTO_API_KEY: "atk_envelope_test",
+			AUTO_API_URL: `http://127.0.0.1:${gateway.address().port}`,
+		},
+		stdio: ["pipe", "pipe", "pipe"],
+	});
+
+	try {
+		writeJson(child, {
+			jsonrpc: "2.0",
+			id: 1,
+			method: "initialize",
+			params: {
+				protocolVersion: "2024-11-05",
+				capabilities: {},
+				clientInfo: { name: "node-test", version: "0.0.0" },
+			},
+		});
+		await waitForJsonLine(child, 1);
+
+		writeJson(child, {
+			jsonrpc: "2.0",
+			id: 2,
+			method: "tools/list",
+			params: {},
+		});
+		const listed = await waitForJsonLine(child, 2);
+
+		writeJson(child, {
+			jsonrpc: "2.0",
+			id: 3,
+			method: "tools/call",
+			params: { name: "ANY_TOOL", arguments: {} },
+		});
+		const called = await waitForJsonLine(child, 3);
+
+		assert.ok(listed.error);
+		assert.equal(called.result.isError, true);
+		assert.match(called.result.content[0].text, /invalid gateway response/i);
+	} finally {
+		child.kill("SIGTERM");
+		gateway.close();
+	}
+});
+
 test("lists tools through stdio with stored visibility when an environment key overrides the credential", async () => {
 	const home = await mkdtemp(path.join(os.tmpdir(), "auto-mcp-profile-"));
 	await mkdir(path.join(home, ".auto", "mcp"), { recursive: true });
@@ -228,13 +298,23 @@ test("does not send an environment credential to a stored profile origin", async
 	const home = await mkdtemp(path.join(os.tmpdir(), "auto-mcp-env-origin-"));
 	await mkdir(path.join(home, ".auto", "mcp"), { recursive: true });
 	let storedOriginRequests = 0;
+	let environmentOriginApiKey;
 	const storedOrigin = http.createServer((_req, res) => {
 		storedOriginRequests += 1;
 		res.setHeader("content-type", "application/json");
 		res.end(JSON.stringify({ success: true, data: { tools: [] } }));
 	});
 	storedOrigin.listen(0, "127.0.0.1");
-	await once(storedOrigin, "listening");
+	const environmentOrigin = http.createServer((req, res) => {
+		environmentOriginApiKey = req.headers["x-auto-api-key"];
+		res.setHeader("content-type", "application/json");
+		res.end(JSON.stringify({ success: true, data: { tools: [] } }));
+	});
+	environmentOrigin.listen(0, "127.0.0.1");
+	await Promise.all([
+		once(storedOrigin, "listening"),
+		once(environmentOrigin, "listening"),
+	]);
 	await writeFile(
 		path.join(home, ".auto", "mcp", "profiles.json"),
 		JSON.stringify({
@@ -258,7 +338,7 @@ test("does not send an environment credential to a stored profile origin", async
 			...process.env,
 			HOME: home,
 			AUTO_API_KEY: "atk_environment_key",
-			AUTO_API_URL: "",
+			AUTO_API_URL: `http://127.0.0.1:${environmentOrigin.address().port}`,
 		},
 		stdio: ["pipe", "pipe", "pipe"],
 	});
@@ -271,11 +351,13 @@ test("does not send an environment credential to a stored profile origin", async
 		});
 		await waitForJsonLine(child, 1);
 		writeJson(child, { jsonrpc: "2.0", id: 2, method: "tools/list", params: {} });
-		await new Promise((resolve) => setTimeout(resolve, 300));
+		await waitForJsonLine(child, 2);
 		assert.equal(storedOriginRequests, 0);
+		assert.equal(environmentOriginApiKey, "atk_environment_key");
 	} finally {
 		child.kill("SIGTERM");
 		storedOrigin.close();
+		environmentOrigin.close();
 		await rm(home, { recursive: true, force: true });
 	}
 });

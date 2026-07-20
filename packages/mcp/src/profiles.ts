@@ -84,7 +84,9 @@ export async function loadProfile(name?: string): Promise<{
 		throw new Error("Auto MCP profile file has an unsupported structure");
 	}
 	const profileName = validateProfileName(name || file.activeProfile);
-	const profile = file.profiles[profileName];
+	const profile = Object.hasOwn(file.profiles, profileName)
+		? file.profiles[profileName]
+		: undefined;
 	if (!isStoredProfile(profile)) {
 		throw new Error(
 			`Auto MCP profile '${profileName}' was not found or is invalid. Run 'auto setup' first.`,
