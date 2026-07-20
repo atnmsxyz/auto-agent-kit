@@ -266,6 +266,55 @@ test("setup rejects unsupported installers before creating an authorization", as
 	}
 });
 
+test("setup rejects a custom Read profile with only write-only categories before authorization", async () => {
+	const home = await mkdtemp(path.join(os.tmpdir(), "auto-mcp-read-categories-"));
+	let requests = 0;
+	const server = http.createServer((_req, res) => {
+		requests += 1;
+		res.statusCode = 500;
+		res.end();
+	});
+	server.listen(0, "127.0.0.1");
+	await once(server, "listening");
+	const { port } = server.address();
+
+	try {
+		const result = await run(
+			process.execPath,
+			[
+				"dist/index.js",
+				"setup",
+				"--profile",
+				"invalid-read",
+				"--preset",
+				"custom",
+				"--access",
+				"read",
+				"--categories",
+				"wallet-execution,spot",
+				"--client",
+				"category-validation",
+				"--no-open",
+			],
+			{
+				cwd: new URL("..", import.meta.url),
+				env: {
+					...process.env,
+					HOME: home,
+					AUTO_API_URL: `http://127.0.0.1:${port}`,
+				},
+				stdio: ["ignore", "pipe", "pipe"],
+			},
+		);
+		assert.equal(result.code, 1);
+		assert.match(result.stderr, /Read profile needs at least one read-capable category/i);
+		assert.equal(requests, 0);
+	} finally {
+		server.close();
+		await rm(home, { recursive: true, force: true });
+	}
+});
+
 test("setup rejects an empty verified tool catalog before persistence or acknowledgement", async () => {
 	const home = await mkdtemp(path.join(os.tmpdir(), "auto-mcp-empty-catalog-"));
 	let acknowledged = false;

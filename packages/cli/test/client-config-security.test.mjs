@@ -18,7 +18,7 @@ test("Windows direct installers preserve the original config ACL and fail closed
 	await writeFile(aclLog, "");
 	await writeFile(
 		path.join(bin, "powershell.exe"),
-		'#!/bin/sh\nprintf "%s\\n" "$*" >> "$ACL_LOG"\n[ "$ACL_FAIL" != "1" ]\n',
+		'#!/bin/sh\n[ "$#" -eq 5 ] || exit 2\nprintf "%s|%s|%s\\n" "$*" "$AUTO_MCP_ACL_SOURCE" "$AUTO_MCP_ACL_TARGET" >> "$ACL_LOG"\n[ "$ACL_FAIL" != "1" ]\n',
 	);
 	await chmod(path.join(bin, "powershell.exe"), 0o755);
 
@@ -41,7 +41,7 @@ test("Windows direct installers preserve the original config ACL and fail closed
 		});
 		const aclCall = await readFile(aclLog, "utf8");
 		assert.match(aclCall, /Get-Acl/);
-		assert.match(aclCall, /mcp\.json/);
+		assert.match(aclCall, /mcp\.json\|/);
 		assert.match(aclCall, /mcp\.json\..*\.tmp/);
 
 		await writeFile(configPath, original);

@@ -1389,3 +1389,65 @@ if (parsed.env.AUTO_MCP_PROFILE !== "research") process.exit(2);
 		await rm(home, { recursive: true, force: true });
 	}
 });
+
+test("Windows print-only command emits a PowerShell-safe JSON argument", async () => {
+	const home = await mkdtemp(path.join(os.tmpdir(), "auto-mcp-powershell-print-"));
+	const profilePath = path.join(home, ".auto", "mcp", "profiles.json");
+	const platformHook = path.join(home, "win32-platform.mjs");
+	await mkdir(path.dirname(profilePath), { recursive: true });
+	await writeFile(
+		profilePath,
+		JSON.stringify({
+			version: 1,
+			activeProfile: "research",
+			profiles: {
+				research: {
+					apiKey: "atk_powershell_print_secret",
+					apiUrl: "https://auto.test",
+					accessPreset: "read",
+					surface: "research",
+					createdAt: "2026-07-16T00:00:00.000Z",
+					updatedAt: "2026-07-16T00:00:00.000Z",
+				},
+			},
+		}),
+		{ mode: 0o600 },
+	);
+	await writeFile(
+		platformHook,
+		'Object.defineProperty(process, "platform", { value: "win32" });\n',
+	);
+
+	try {
+		const printed = await run(
+			process.execPath,
+			[
+				"--import",
+				platformHook,
+				"dist/index.js",
+				"configure",
+				"--profile",
+				"research",
+				"--install",
+				"claude-code",
+				"--print-only",
+			],
+			{
+				cwd: new URL("..", import.meta.url),
+				env: { ...process.env, HOME: home, USERPROFILE: home },
+				stdio: ["ignore", "pipe", "pipe"],
+			},
+		);
+		assert.equal(printed.code, 0, printed.stderr);
+		const command = printed.stdout.trim().split("\n").at(-1);
+		const match = command.match(
+			/^claude mcp add-json --scope user auto '((?:[^']|'')+)'$/,
+		);
+		assert.ok(match, command);
+		const definition = JSON.parse(match[1].replaceAll("''", "'"));
+		assert.equal(definition.type, "stdio");
+		assert.equal(definition.env.AUTO_MCP_PROFILE, "research");
+	} finally {
+		await rm(home, { recursive: true, force: true });
+	}
+});

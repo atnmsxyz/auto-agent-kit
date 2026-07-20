@@ -52,6 +52,7 @@ const WRITE_TOOL_CATEGORIES = new Set([
 	"limit-orders",
 	"trading",
 ]);
+const WRITE_ONLY_CUSTOM_CATEGORIES = new Set(["wallet-execution", "spot"]);
 const ACKNOWLEDGEMENT_ATTEMPTS = 3;
 
 class SetupAcknowledgementUncertainError extends Error {
@@ -380,6 +381,14 @@ async function resolveInteractiveOptions(options: SetupOptions): Promise<{
 		if (categories.length === 0 || invalid.length > 0) {
 			throw new Error(
 				`Custom setup needs supported categories. Invalid: ${invalid.join(", ") || "none selected"}`,
+			);
+		}
+		if (
+			access === "read" &&
+			categories.every((category) => WRITE_ONLY_CUSTOM_CATEGORIES.has(category))
+		) {
+			throw new Error(
+				"A custom Read profile needs at least one read-capable category",
 			);
 		}
 		categories = [...new Set(categories)];

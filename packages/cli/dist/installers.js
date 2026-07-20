@@ -88,10 +88,15 @@ async function preserveWindowsAcl(source, target) {
             "-NoProfile",
             "-NonInteractive",
             "-Command",
-            "$acl = Get-Acl -LiteralPath $args[0]; Set-Acl -LiteralPath $args[1] -AclObject $acl",
-            source,
-            target,
-        ], { windowsHide: true });
+            "$acl = Get-Acl -LiteralPath $env:AUTO_MCP_ACL_SOURCE; Set-Acl -LiteralPath $env:AUTO_MCP_ACL_TARGET -AclObject $acl",
+        ], {
+            env: {
+                ...process.env,
+                AUTO_MCP_ACL_SOURCE: source,
+                AUTO_MCP_ACL_TARGET: target,
+            },
+            windowsHide: true,
+        });
     }
     catch (error) {
         throw new Error(`Windows client config ACL preservation failed: ${error instanceof Error ? error.message : String(error)}`);
@@ -533,8 +538,9 @@ async function installCommandClient(client, profileName, replace) {
 function shellQuote(value) {
     if (/^[A-Za-z0-9_@%+=:,./-]+$/.test(value))
         return value;
-    if (process.platform === "win32")
-        return JSON.stringify(value);
+    if (process.platform === "win32") {
+        return `'${value.replaceAll("'", "''")}'`;
+    }
     return `'${value.replaceAll("'", `'\\''`)}'`;
 }
 function printableConfig(client, profileName) {

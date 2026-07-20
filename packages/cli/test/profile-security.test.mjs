@@ -373,7 +373,7 @@ test("Windows profile storage removes every prior access rule and fails closed w
 	const powershell = path.join(bin, "powershell.exe");
 	await writeFile(
 		powershell,
-		'#!/bin/sh\nprintf "%s\\n" "$*" >> "$ACL_LOG"\nif [ "$ACL_FAIL_FINAL" = "1" ]; then\n  case "$*" in\n    *"/profiles.json TESTDOMAIN\\test-user"*) exit 1 ;;\n  esac\nfi\nexit 0\n',
+		'#!/bin/sh\n[ "$#" -eq 5 ] || exit 2\nif [ -n "$AUTO_MCP_LOCK_PID" ]; then\n  printf "2026-01-01T00:00:00.000Z\\n"\n  exit 0\nfi\nprintf "%s|%s|%s|%s\\n" "$*" "$AUTO_MCP_ACL_TARGET" "$AUTO_MCP_ACL_PRINCIPAL" "$AUTO_MCP_ACL_DIRECTORY" >> "$ACL_LOG"\nif [ "$ACL_FAIL_FINAL" = "1" ]; then\n  case "$AUTO_MCP_ACL_TARGET" in\n    */profiles.json) exit 1 ;;\n  esac\nfi\nexit 0\n',
 		"utf8",
 	);
 	await chmod(powershell, 0o755);
@@ -405,9 +405,9 @@ test("Windows profile storage removes every prior access rule and fails closed w
 			assert.match(call, /AddAccessRule/);
 			assert.match(call, /TESTDOMAIN\\test-user/);
 		}
-		assert.match(aclCalls[0], /[/\\]\.auto[/\\]mcp TESTDOMAIN\\test-user true/);
-		assert.match(aclCalls[1], /profiles\.json\..*\.tmp TESTDOMAIN\\test-user false/);
-		assert.match(aclCalls[2], /profiles\.json TESTDOMAIN\\test-user false/);
+		assert.match(aclCalls[0], /[/\\]\.auto[/\\]mcp\|TESTDOMAIN\\test-user\|true/);
+		assert.match(aclCalls[1], /profiles\.json\..*\.tmp\|TESTDOMAIN\\test-user\|false/);
+		assert.match(aclCalls[2], /profiles\.json\|TESTDOMAIN\\test-user\|false/);
 
 		const before = await readFile(profilesPath(), "utf8");
 		process.env.ACL_FAIL_FINAL = "1";

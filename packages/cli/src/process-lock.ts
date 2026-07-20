@@ -34,10 +34,13 @@ async function processStartedAt(pid: number): Promise<number | null> {
 					"-NoProfile",
 					"-NonInteractive",
 					"-Command",
-					"(Get-Process -Id $args[0]).StartTime.ToUniversalTime().ToString('o')",
-					String(pid),
+					"(Get-Process -Id ([int]$env:AUTO_MCP_LOCK_PID)).StartTime.ToUniversalTime().ToString('o')",
 				],
-				{ timeout: 2_000, windowsHide: true },
+				{
+					env: { ...process.env, AUTO_MCP_LOCK_PID: String(pid) },
+					timeout: 2_000,
+					windowsHide: true,
+				},
 			);
 			const parsed = Date.parse(stdout.trim());
 			return Number.isFinite(parsed) ? parsed : null;

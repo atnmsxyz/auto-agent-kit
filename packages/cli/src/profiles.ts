@@ -55,16 +55,19 @@ async function hardenWindowsAcl(target: string, directory: boolean): Promise<voi
 	const domain = process.env.USERDOMAIN?.trim();
 	const principal = domain ? `${domain}\\${username}` : username;
 	const aclScript = [
-		"$acl = Get-Acl -LiteralPath $args[0];",
+		"$target = $env:AUTO_MCP_ACL_TARGET;",
+		"$principal = $env:AUTO_MCP_ACL_PRINCIPAL;",
+		"$directory = $env:AUTO_MCP_ACL_DIRECTORY;",
+		"$acl = Get-Acl -LiteralPath $target;",
 		"$acl.SetAccessRuleProtection($true, $false);",
 		"@($acl.Access) | ForEach-Object { [void]$acl.RemoveAccessRuleSpecific($_) };",
 		"$rights = [System.Security.AccessControl.FileSystemRights]::FullControl;",
-		"$inheritance = if ($args[2] -eq 'true') { [System.Security.AccessControl.InheritanceFlags]::ContainerInherit -bor [System.Security.AccessControl.InheritanceFlags]::ObjectInherit } else { [System.Security.AccessControl.InheritanceFlags]::None };",
+		"$inheritance = if ($directory -eq 'true') { [System.Security.AccessControl.InheritanceFlags]::ContainerInherit -bor [System.Security.AccessControl.InheritanceFlags]::ObjectInherit } else { [System.Security.AccessControl.InheritanceFlags]::None };",
 		"$propagation = [System.Security.AccessControl.PropagationFlags]::None;",
 		"$accessType = [System.Security.AccessControl.AccessControlType]::Allow;",
-		"$rule = [System.Security.AccessControl.FileSystemAccessRule]::new($args[1], $rights, $inheritance, $propagation, $accessType);",
+		"$rule = [System.Security.AccessControl.FileSystemAccessRule]::new($principal, $rights, $inheritance, $propagation, $accessType);",
 		"[void]$acl.AddAccessRule($rule);",
-		"Set-Acl -LiteralPath $args[0] -AclObject $acl;",
+		"Set-Acl -LiteralPath $target -AclObject $acl;",
 	].join(" ");
 	try {
 		await execFileAsync(
@@ -75,11 +78,16 @@ async function hardenWindowsAcl(target: string, directory: boolean): Promise<voi
 				"-NonInteractive",
 				"-Command",
 				aclScript,
-				target,
-				principal,
-				String(directory),
 			],
-			{ windowsHide: true },
+			{
+				env: {
+					...process.env,
+					AUTO_MCP_ACL_TARGET: target,
+					AUTO_MCP_ACL_PRINCIPAL: principal,
+					AUTO_MCP_ACL_DIRECTORY: String(directory),
+				},
+				windowsHide: true,
+			},
 		);
 	} catch (error) {
 		throw new Error(
